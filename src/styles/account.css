@@ -1,0 +1,480 @@
+.account-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 21px 24px;
+  margin-bottom: 23px;
+}
+.account-strip-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 200px;
+}
+.account-strip-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 43px;
+  height: 43px;
+  border-radius: 12px;
+  color: #8762a5;
+  background: #f3ebfa;
+}
+.account-strip-main strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #614a74;
+}
+.account-strip-main p {
+  font-size: 10px;
+  line-height: 1.8;
+  margin-top: 5px;
+  color: #7e6e8a;
+  overflow-wrap: anywhere;
+}
+.account-strip-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.dvdd-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 140px;
+}
+.dvdd-balance > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #7c648b;
+  font-size: 10px;
+}
+.dvdd-balance strong {
+  color: #76518e;
+  font-weight: 600;
+  font-size: 26px;
+  letter-spacing: -0.8px;
+}
+.dvdd-balance small {
+  color: #85748f;
+  font-size: 9px;
+}
+.account-strip .dvdd-balance strong {
+  font-size: 23px;
+}
+.account-message {
+  flex-basis: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #956324;
+  background: #fff9ed;
+  border: 1px solid #f3e8cf;
+  border-radius: 7px;
+  padding: 12px 15px;
+  font-size: 10px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+.account-message svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.account-sections {
+  display: grid;
+  gap: 23px;
+}
+.account-login .panel-heading,
+.account-profile .panel-heading,
+.remote-history > .panel-heading {
+  padding: 23px 25px;
+  border-bottom: 1px solid #f0e9f4;
+}
+.account-login .panel-heading h2,
+.account-profile .panel-heading h2,
+.account-settings-link h2 {
+  font-size: 13px;
+}
+.account-login .panel-heading p,
+.account-profile .panel-heading p,
+.account-settings-link p {
+  margin-top: 5px;
+  font-size: 10px;
+  line-height: 1.9;
+  color: #817089;
+}
+.account-login form {
+  padding: 24px 25px;
+}
+.account-login-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  color: #7c648b;
+  background: #faf7ff;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+.account-login-intro svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.account-login-intro p {
+  font-size: 11px;
+  line-height: 1.95;
+  max-width: 680px;
+}
+.account-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 920px;
+}
+.account-fields > div {
+  min-width: 0;
+}
+.account-login .settings-form-actions {
+  margin: 22px 0 15px;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.account-login .token-input {
+  height: 46px;
+}
+.account-login .token-input input {
+  font-size: 12px;
+}
+.account-profile-body {
+  display: flex;
+  align-items: center;
+  gap: 42px;
+  padding: 26px;
+}
+.account-profile-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 25px;
+  flex: 1;
+  min-width: 0;
+}
+.account-profile-fields div {
+  min-width: 0;
+}
+.account-profile-fields dt {
+  font-size: 10px;
+  color: #87768f;
+  margin-bottom: 9px;
+}
+.account-profile-fields dd {
+  margin: 0;
+  font-size: 12px;
+  color: #695675;
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+}
+.account-profile-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 18px 25px;
+  background: #fdfbff;
+  border-top: 1px solid #f0e9f4;
+  border-radius: 0 0 12px 12px;
+}
+.account-profile > .account-message {
+  margin: 0 25px 17px;
+}
+.account-settings-link {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 22px;
+}
+.account-settings-link > .settings-title {
+  flex: 1;
+  min-width: 190px;
+}
+.account-settings-link .settings-icon {
+  flex-shrink: 0;
+}
+.remote-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 17px 23px;
+  gap: 14px;
+}
+.remote-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #eee4f5;
+  background: #fcfaff;
+  border-radius: 8px;
+}
+.remote-tabs button {
+  padding: 9px 13px;
+  font-size: 10px;
+  color: #7b6a87;
+  border: 0;
+  background: transparent;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.remote-tabs button[aria-selected="true"] {
+  color: #79528f;
+  background: #eee2f8;
+  font-weight: 500;
+}
+.remote-search {
+  border: 1px solid #e8ddef;
+  background: #fff;
+  color: #6b557b;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 10px;
+  padding: 12px 14px;
+  min-width: 240px;
+  max-width: 100%;
+}
+.remote-scope {
+  padding: 0 24px 18px;
+  font-size: 10px;
+  color: #83718d;
+  line-height: 1.95;
+}
+.remote-order-list {
+  border-top: 1px solid #f0e9f4;
+}
+.remote-order {
+  padding: 19px 25px;
+  border-bottom: 1px solid #f2ebf7;
+}
+.remote-order:last-child {
+  border-bottom: 0;
+}
+.remote-order-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.remote-order-top > strong {
+  color: #695076;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+}
+.remote-order-top > b {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+  color: #736080;
+}
+.dvdd-status {
+  color: #8a6b3a;
+  background: #fcf5e9;
+  border: 1px solid #f3e7d1;
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 9px;
+}
+.dvdd-status.complete {
+  color: #52816e;
+  background: #f0f8f3;
+  border-color: #deeee4;
+}
+.remote-order-data {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 30px;
+  margin-top: 12px;
+  font-size: 10px;
+  color: #87738f;
+}
+.remote-order-code,
+.remote-otp {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow-wrap: anywhere;
+}
+.remote-otp strong {
+  font-size: 13px;
+  color: #78508e;
+  letter-spacing: 1px;
+  overflow-wrap: anywhere;
+}
+.remote-time {
+  color: #8e7e97;
+  font-size: 9px;
+  margin-top: 8px;
+  line-height: 1.9;
+}
+.remote-empty {
+  padding: 26px;
+  color: #7f6c8b;
+  font-size: 11px;
+  line-height: 1.8;
+  text-align: center;
+}
+.remote-table-wrap {
+  overflow: auto;
+  width: 100%;
+}
+.remote-table {
+  width: 100%;
+  min-width: 670px;
+  border-collapse: collapse;
+  text-align: left;
+}
+.remote-table th {
+  font-size: 9px;
+  font-weight: 500;
+  color: #887391;
+  padding: 14px 22px;
+  background: #faf7fd;
+  border-block: 1px solid #efe6f6;
+}
+.remote-table td {
+  padding: 16px 22px;
+  color: #75617f;
+  font-size: 11px;
+  line-height: 1.8;
+  border-bottom: 1px solid #f2ecf6;
+}
+.remote-table td strong {
+  font-size: 10px;
+  font-weight: 500;
+}
+.remote-table td small {
+  display: block;
+  color: #93819c;
+  margin-top: 5px;
+  font-size: 9px;
+}
+.remote-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  color: #8a7594;
+  font-size: 10px;
+  gap: 12px;
+}
+.remote-pagination > div {
+  display: flex;
+  gap: 8px;
+}
+.sidebar-account > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1100px) {
+  .account-profile-body {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .account-profile-fields {
+    width: 100%;
+  }
+  .account-strip {
+    gap: 19px;
+  }
+  .account-strip-actions {
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 740px) {
+  .account-strip {
+    padding: 18px;
+    gap: 20px;
+  }
+  .account-strip-main {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+  .account-strip-main strong {
+    font-size: 11px;
+    line-height: 1.8;
+  }
+  .account-strip-actions {
+    flex-basis: auto;
+    flex: 1;
+  }
+  .account-strip .dvdd-balance strong {
+    font-size: 22px;
+  }
+  .account-fields {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .account-login .panel-heading,
+  .account-profile .panel-heading,
+  .remote-history > .panel-heading {
+    padding: 19px;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+  .account-login form,
+  .account-profile-body {
+    padding: 19px;
+  }
+  .account-profile-fields {
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+  }
+  .account-profile-fields > div:first-child {
+    grid-column: 1 / -1;
+  }
+  .account-profile-actions,
+  .remote-toolbar,
+  .remote-order {
+    padding: 18px;
+  }
+  .account-profile > .account-message {
+    margin-inline: 18px;
+  }
+  .account-login-intro p {
+    font-size: 10px;
+  }
+  .remote-scope {
+    padding-inline: 18px;
+  }
+  .remote-search {
+    flex: 1;
+    width: 100%;
+  }
+  .remote-order-top {
+    gap: 10px;
+  }
+  .remote-order-top > strong {
+    font-size: 13px;
+  }
+  .remote-order-data {
+    gap: 7px 16px;
+  }
+  .remote-order-data > span:first-child {
+    width: 100%;
+  }
+  .remote-order-code {
+    font-size: 9px;
+  }
+  .remote-otp strong {
+    letter-spacing: 0.5px;
+  }
+  .account-profile .connection-pill {
+    font-size: 9px;
+  }
+}
