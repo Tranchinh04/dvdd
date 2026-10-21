@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ClientError, postApi } from "@/lib/client-api";
 import { demoOrders, readOrders } from "@/lib/storage";
+import { useHistory } from "./use-history";
 import {
   Connection,
   AccountResponse,
@@ -133,7 +134,51 @@ export function useWorkspace() {
     };
   }, [connectionLoaded, key, demo, refreshAccount]);
 
+  const expireAccount = useCallback(() => {
+    accountRequest.current++;
+    accountController.current?.abort();
+    setAccountData(null);
+    setAccountScope("");
+    setAccountLoading(false);
+    setAccountError(
+      "Phiên đăng nhập DVDD đã hết hạn. Đăng nhập lại để tải lịch sử.",
+    );
+  }, []);
   const account = !demo && accountScope === key ? accountData : null;
+  const history = useHistory(
+    account,
+    key,
+    storageReady === key ? orders : [],
+    expireAccount,
+  );
+
+  useEffect(() => {
+    if (!account || storageReady !== key) return;
+    const resolved = new Map(
+      history.records
+        .filter(
+          (order) =>
+            order.fromProvider &&
+            (order.status === "received" || order.status === "expired"),
+        )
+        .map((order) => [order.orderCode, order]),
+    );
+    setOrders((previous) => {
+      let changed = false;
+      const next = previous.map((order) => {
+        const remote = resolved.get(order.orderCode);
+        if (!remote || order.status !== "waiting") return order;
+        changed = true;
+        return {
+          ...order,
+          status: remote.status as "received" | "expired",
+          otp: remote.otp || order.otp,
+          lastError: undefined,
+        };
+      });
+      return changed ? next : previous;
+    });
+  }, [account, history.records, storageReady, key]);
 
   useEffect(() => {
     if (!account || demo) return;
@@ -505,6 +550,7 @@ export function useWorkspace() {
       createdAt: new Date().toISOString(),
       status: "waiting",
       otp: "",
+      imported: true,
     };
     setOrders((previous) => [order, ...previous]);
     notify(
@@ -527,6 +573,7 @@ export function useWorkspace() {
     logout,
     demo,
     orders,
+    history,
     preferences,
     notice,
     setNotice,

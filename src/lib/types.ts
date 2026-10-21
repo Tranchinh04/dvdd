@@ -13,6 +13,7 @@ export type Order = {
   otp: string;
   lastCheckedAt?: string;
   lastError?: string;
+  imported?: boolean;
 };
 
 export type Connection = {
@@ -56,9 +57,33 @@ export type DvddAccount = {
   transactions: DvddTransaction[] | null;
   transactionPage: number;
   transactionPages: number;
+  phonePages?: number;
   updatedAt: string;
   warnings: string[];
 };
+
+export type HistoryStatus = OrderStatus | "unknown";
+
+export type HistoryOrder = Omit<Order, "service" | "status" | "createdAt"> & {
+  service: ServiceId | null;
+  serviceLabel: string;
+  status: HistoryStatus;
+  statusLabel?: string;
+  createdAt: string | null;
+  timeLabel: string;
+  fromProvider: boolean;
+  ledgerOnly?: boolean;
+  trackingOrder?: Order;
+};
+
+export type HistoryPage =
+  | { kind: "phones"; page: number; pages: number; rows: DvddPhoneOrder[] }
+  | {
+      kind: "transactions";
+      page: number;
+      pages: number;
+      rows: DvddTransaction[];
+    };
 
 export type AccountResponse = {
   success: true;

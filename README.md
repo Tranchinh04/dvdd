@@ -68,7 +68,8 @@ DVDD_API_KEY=
 - Mỗi nhịp tự động kiểm tra tối đa ba đơn. Lỗi tạm thời được giãn chu kỳ tối thiểu 30 giây; dừng theo dõi khi đã có OTP hoặc DVDD xác nhận hết hạn.
 - Lịch sử riêng theo token, tìm số/mã đơn/OTP, lọc trạng thái/nhà mạng/thời gian, phân trang và xuất CSV tương thích Excel.
 - Thêm đơn đã có bằng `orderCode` để tiếp tục theo dõi OTP. API không cung cấp phí và thời điểm mua gốc của đơn được thêm lại.
-- Thống kê số đơn, trạng thái OTP, chi phí có dữ liệu và biểu đồ hoạt động bảy ngày, tính từ lịch sử trên trình duyệt.
+- Lịch sử và thống kê tự tải các trang giao dịch DVDD, gộp với đơn trên máy theo mã đơn. Mặc định xem toàn bộ thời gian; có bộ lọc 7/30 ngày, biểu đồ theo thời điểm mua và xuất CSV.
+- Khôi phục đơn thuê cũ từ mô tả giao dịch thuê số, đối chiếu khoản hoàn do không nhận OTP. Đơn không còn chi tiết số/OTP được đánh dấu; không suy đoán đơn thành công hoặc năm mua.
 - Mã hóa token bằng AES-256-GCM trong cookie HttpOnly, SameSite Strict; bật Secure khi dùng HTTPS. Cookie chỉ gửi đến `/api`.
 - Phiên đăng nhập DVDD nằm trong cookie mã hóa riêng, ràng buộc với API token hiện tại. Đổi/xóa token sẽ xóa phiên đăng nhập; đăng xuất xóa cả hai cookie của trình duyệt này. Dữ liệu tài khoản thật được tách khỏi chế độ demo.
 - Kiểm tra nguồn và dữ liệu yêu cầu, không cache phản hồi chứa OTP, không đưa token vào thông báo lỗi.
@@ -84,6 +85,7 @@ Trình duyệt chỉ gọi các Route Handler cùng nguồn. Máy chủ gọi en
 | `DELETE /api/connection` | Không gọi DVDD       | Xóa token của phiên                      |
 | `POST /api/account`     | Đăng nhập web DVDD   | `{ "email": "...", "password": "..." }`; không trả token/mật khẩu |
 | `GET /api/account?page=1` | Đọc tài khoản web DVDD | Số dư, hồ sơ, lịch sử thuê số và trang giao dịch |
+| `GET /api/history?kind=transactions&page=1` | Đọc lịch sử web DVDD | Một trang giao dịch; `kind=phones` đọc bảng thuê số. Cần phiên đăng nhập cùng API token |
 | `DELETE /api/account`   | Không gọi DVDD       | Đăng xuất phiên trong ứng dụng này, xóa cookie token |
 | `POST /api/phone`        | `getPhoneNumber`     | `{ "service": "standard" }`              |
 | `POST /api/phone`        | `getPhoneNumberVNMB` | `{ "service": "vnmb" }`                  |
@@ -93,9 +95,11 @@ Các yêu cầu ghi cần header `Origin` trùng host ứng dụng và nội dun
 
 Ba API được cung cấp chưa có số dư/danh sách đơn. Phần tài khoản dùng phiên đăng nhập để đọc các trang có sẵn của `dvdd.casa`, không phải API tài khoản chính thức. Nếu nhà cung cấp thay đổi đăng nhập/cấu trúc trang, phần đồng bộ có thể cần cập nhật. Connector chỉ đọc hồ sơ, API token hiện có, bảng thuê số của chủ tài khoản và giao dịch; không lấy bảng hoạt động công khai của người khác, không chạy script biểu mẫu mua/hủy/hoàn tiền.
 
-Lịch sử DVDD hiển thị đúng phạm vi nhà cung cấp trả về. Số đơn hiển thị không được coi là tổng đơn trọn đời; thời gian thuê số giữ nguyên văn bản DVDD vì bảng đó không cung cấp năm cho mọi dòng. Giao dịch đọc theo từng trang của DVDD.
+Lịch sử DVDD hiển thị đúng phạm vi nhà cung cấp còn cung cấp. Ứng dụng tải các trang được quảng bá trong phân trang, tối đa hai yêu cầu cùng lúc, hiện tiến độ và giữ dữ liệu đã tải nếu có trang lỗi. Bảng thuê số có thể chỉ còn các đơn gần đây; các mô tả `Trừ ví đơn hàng … phí thuê số [VNMB]` giúp khôi phục thêm đơn cũ. Chỉ mô tả thuê số đã xác minh mới được tính là đơn; không tính nạp tiền hay mua tài khoản. Khoản `Hoàn ví không nhận được OTP …` được ghép theo mã đơn và trừ khỏi phí đã ghi nhận. Không tự gán trạng thái thành công cho đơn chỉ còn giao dịch. Tổng phí là của các đơn đã tải, không phải toàn bộ biến động ví.
 
-Đơn mua/theo dõi qua ứng dụng vẫn lưu riêng theo token tại `localStorage`; các biểu đồ và thống kê trên trang mua số tính từ lịch sử trên trình duyệt này. Lịch sử đọc từ DVDD nằm ở **Tài khoản DVDD** và không được lưu vào localStorage hay tự đưa vào vòng kiểm tra OTP. Bạn có thể đăng nhập lại từ máy khác để đọc phần lịch sử DVDD còn cung cấp. Xuất CSV để giữ bản sao đơn trên trình duyệt trước khi xóa dữ liệu. Chế độ dùng thử tắt khi tải lại trang, dữ liệu demo vẫn được giữ riêng.
+Thời điểm mua được ghép với giao dịch có mã đơn và năm đầy đủ, theo múi giờ Việt Nam. Nếu không xác định được năm, ứng dụng giữ nguyên văn bản thời gian và loại đơn đó khỏi biểu đồ/bộ lọc ngày. Đơn vẫn được tính trong tổng toàn bộ thời gian. Tỷ lệ nhận OTP chỉ tính các đơn có kết quả xác định.
+
+Đơn mua/theo dõi qua ứng dụng vẫn lưu riêng theo token tại `localStorage`. Dữ liệu đọc từ DVDD được dùng chung cho đơn gần đây, **Lịch sử đơn hàng** và **Thống kê sử dụng**, chỉ giữ trong bộ nhớ của phiên và không tự đưa đơn cũ vào vòng kiểm tra OTP. Đơn đang theo dõi trên máy dừng kiểm tra khi dữ liệu DVDD xác nhận đã kết thúc. Có thể đăng nhập lại từ máy khác để đọc phần lịch sử DVDD còn cung cấp; xuất CSV để giữ bản sao. Xóa lịch sử trên máy không xóa đơn ở DVDD. Chế độ dùng thử tắt khi tải lại trang, dữ liệu demo vẫn được giữ riêng.
 
 ## Kiểm tra và build
 

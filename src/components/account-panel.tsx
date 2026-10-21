@@ -53,11 +53,21 @@ function RefreshButton({ workspace }: { workspace: Workspace }) {
   return (
     <button
       className="button secondary small"
+      aria-label={
+        workspace.accountLoading
+          ? "Đang cập nhật tài khoản"
+          : "Làm mới tài khoản"
+      }
       disabled={workspace.accountLoading || workspace.accountBusy}
       onClick={() => void workspace.refreshAccount()}
     >
       <RefreshCw size={14} className={workspace.accountLoading ? "spin" : ""} />
-      {workspace.accountLoading ? "Đang cập nhật..." : "Làm mới tài khoản"}
+      <span className="desktop-button-label">
+        {workspace.accountLoading ? "Đang cập nhật..." : "Làm mới tài khoản"}
+      </span>
+      <span className="mobile-button-label">
+        {workspace.accountLoading ? "Đang tải..." : "Làm mới"}
+      </span>
     </button>
   );
 }
@@ -84,12 +94,12 @@ export function AccountStrip({
           <strong>
             {account
               ? account.profile.name || "Tài khoản DVDD"
-              : "Đăng nhập để quản lý tài khoản DVDD"}
+              : "Kết nối tài khoản của bạn"}
           </strong>
           <p>
             {account
               ? account.profile.email
-              : "Xem số dư thật, lịch sử thuê số và giao dịch ngay tại đây."}
+              : "Đăng nhập DVDD để xem số dư, mua số và quản lý lịch sử."}
           </p>
         </div>
       </div>
@@ -98,14 +108,18 @@ export function AccountStrip({
         {account && <RefreshButton workspace={workspace} />}
         <button
           className={`button small ${account ? "ghost" : "primary"}`}
+          aria-label={account ? "Xem tài khoản DVDD" : "Đăng nhập DVDD"}
           disabled={workspace.accountBusy}
           onClick={onOpen}
         >
-          {account
-            ? "Xem tài khoản"
-            : accountLoading
-              ? "Đang tải tài khoản..."
-              : "Đăng nhập DVDD"}{" "}
+          <span className={account ? "desktop-button-label" : undefined}>
+            {account
+              ? "Xem tài khoản"
+              : accountLoading
+                ? "Đang tải tài khoản..."
+                : "Đăng nhập DVDD"}
+          </span>
+          {account && <span className="mobile-button-label">Chi tiết</span>}
           <ArrowRight size={14} />
         </button>
       </div>
@@ -165,10 +179,7 @@ export function AccountPanel({ workspace }: { workspace: Workspace }) {
         >
           <div className="account-login-intro">
             <ShieldCheck size={18} />
-            <p>
-              Đăng nhập một lần để tự kết nối API, xem số dư và đọc lịch sử từ
-              DVDD. Mật khẩu chỉ dùng để đăng nhập, không được lưu lại.
-            </p>
+            <p>Mật khẩu chỉ dùng để đăng nhập DVDD, không được lưu lại.</p>
           </div>
           {workspace.accountError && (
             <p className="inline-error" role="alert">
@@ -257,9 +268,8 @@ export function AccountPanel({ workspace }: { workspace: Workspace }) {
             </a>
           </div>
           <p className="field-hint">
-            Sử dụng số dư trong tài khoản DVDD của bạn. Đăng nhập không mua số
-            và không trừ tiền. Nếu chỉ có API token, bạn vẫn có thể kết nối tại
-            Cấu hình API để mua số và lấy OTP.
+            Đăng nhập không phát sinh phí. Nếu chỉ có API token, bạn có thể sử
+            dụng mục Cấu hình API.
           </p>
         </form>
       </section>
@@ -281,7 +291,6 @@ export function AccountPanel({ workspace }: { workspace: Workspace }) {
             </span>
             <div>
               <h2>{account.profile.name || "Tài khoản DVDD"}</h2>
-              <p>Đã đăng nhập và kết nối API của tài khoản này.</p>
             </div>
           </div>
           <span className="connection-pill configured">
@@ -418,50 +427,52 @@ export function AccountPanel({ workspace }: { workspace: Workspace }) {
         </div>
         {tab === "orders" ? (
           <>
-            <p className="remote-scope">
-              {account.orders === null
-                ? "Chưa tải được lịch sử thuê số. Hãy làm mới tài khoản."
-                : `DVDD hiện trả ${account.orders.length} đơn thuê số. Số đơn này có thể bị giới hạn bởi nhà cung cấp, không phải tổng đơn trọn đời.`}
-            </p>
             {orders &&
               (orders.length ? (
                 <div className="remote-order-list">
+                  <div className="remote-order-list-head" aria-hidden="true">
+                    <span>Số điện thoại</span>
+                    <span>Mã đơn</span>
+                    <span>OTP</span>
+                    <span>Trạng thái</span>
+                    <span>Thời gian</span>
+                    <span>Phí</span>
+                  </div>
                   {orders.map((row, index) => (
                     <article
                       className="remote-order"
                       key={`${row.orderCode}-${index}`}
                     >
-                      <div className="remote-order-top">
+                      <div className="remote-phone">
                         <strong>{displayPhone(row.phone)}</strong>
-                        <span
-                          className={`dvdd-status ${/đã xong/i.test(row.status) ? "complete" : ""}`}
-                        >
-                          {row.status}
-                        </span>
-                        <b>{row.fee || "Chưa có phí"}</b>
-                      </div>
-                      <div className="remote-order-data">
                         <span>{row.service}</span>
-                        <span className="remote-order-code">
-                          {row.orderCode}
-                          <CopyButton
-                            value={row.orderCode}
-                            label="Sao chép mã đơn DVDD"
-                          />
-                        </span>
-                        <span className="remote-otp">
-                          OTP: <strong>{row.result || "Chưa có"}</strong>
-                          {row.result && (
-                            <CopyButton
-                              value={row.result}
-                              label="Sao chép OTP từ DVDD"
-                            />
-                          )}
-                        </span>
                       </div>
+                      <span className="remote-order-code">
+                        {row.orderCode}
+                        <CopyButton
+                          value={row.orderCode}
+                          label="Sao chép mã đơn DVDD"
+                        />
+                      </span>
+                      <span className="remote-otp">
+                        <span className="mobile-otp-label">OTP</span>
+                        <strong>{row.result || "—"}</strong>
+                        {row.result && (
+                          <CopyButton
+                            value={row.result}
+                            label="Sao chép OTP từ DVDD"
+                          />
+                        )}
+                      </span>
+                      <span
+                        className={`dvdd-status ${/đã xong/i.test(row.status) ? "complete" : ""}`}
+                      >
+                        {row.status}
+                      </span>
                       <p className="remote-time">
                         {row.time || "DVDD chưa cung cấp thời gian"}
                       </p>
+                      <b className="remote-fee">{row.fee || "Chưa có phí"}</b>
                     </article>
                   ))}
                 </div>
@@ -472,6 +483,11 @@ export function AccountPanel({ workspace }: { workspace: Workspace }) {
                     : "DVDD chưa trả đơn thuê số nào cho tài khoản này."}
                 </p>
               ))}
+            <p className="remote-scope">
+              {account.orders === null
+                ? "Chưa tải được lịch sử thuê số. Hãy làm mới tài khoản."
+                : `DVDD hiện trả ${account.orders.length} đơn thuê số. Số đơn có thể được giới hạn bởi nhà cung cấp, không phải tổng đơn trọn đời.`}
+            </p>
           </>
         ) : (
           <>

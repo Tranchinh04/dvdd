@@ -5,6 +5,7 @@ import type {
   DvddPhoneOrder,
   DvddProfile,
   DvddTransaction,
+  HistoryPage,
 } from "../types";
 import { parseFee } from "../types";
 import { ApiError } from "./http";
@@ -241,15 +242,20 @@ export function parseTransactions(html: string) {
         },
       ];
     });
+  return { rows, pages: historyPages(html, "transactions") };
+}
+
+export function historyPages(
+  html: string,
+  section: "transactions" | "order-phone",
+) {
+  const $ = load(html);
   const pages = $(".pagination a[href]")
     .toArray()
     .map((node) => {
       try {
         const url = new URL($(node).attr("href")!, ORIGIN + "/dashboard");
-        if (
-          url.origin !== ORIGIN ||
-          url.searchParams.get("page") !== "transactions"
-        )
+        if (url.origin !== ORIGIN || url.searchParams.get("page") !== section)
           return 1;
         const page = Number(url.searchParams.get("paging"));
         return Number.isInteger(page) && page >= 1 && page <= 1000 ? page : 1;
@@ -257,7 +263,33 @@ export function parseTransactions(html: string) {
         return 1;
       }
     });
-  return { rows, pages: Math.max(1, ...pages) };
+  return Math.max(1, ...pages);
+}
+
+export async function readHistoryPage(
+  jar: SupplierCookies,
+  kind: HistoryPage["kind"],
+  page: number,
+): Promise<HistoryPage> {
+  if (!Number.isInteger(page) || page < 1 || page > 1000)
+    throw new ApiError("Trang lịch sử không hợp lệ.");
+  if (kind === "transactions") {
+    const data = parseTransactions(
+      await document(`/dashboard?page=transactions&paging=${page}`, jar),
+    );
+    return { kind, page, ...data };
+  }
+  if (kind !== "phones") throw new ApiError("Loại lịch sử không hợp lệ.");
+  const html = await document(
+    `/dashboard?page=order-phone&paging=${page}`,
+    jar,
+  );
+  return {
+    kind,
+    page,
+    rows: parsePhoneHistory(html),
+    pages: historyPages(html, "order-phone"),
+  };
 }
 
 export async function readAccount(
@@ -267,7 +299,10 @@ export async function readAccount(
   const [profileResult, ordersResult, transactionsResult] =
     await Promise.allSettled([
       document("/dashboard?page=admin-profile-form", jar).then(parseProfile),
-      document("/dashboard?page=order-phone", jar).then(parsePhoneHistory),
+      document("/dashboard?page=order-phone", jar).then((html) => ({
+        rows: parsePhoneHistory(html),
+        pages: historyPages(html, "order-phone"),
+      })),
       document(`/dashboard?page=transactions&paging=${page}`, jar).then(
         parseTransactions,
       ),
@@ -284,7 +319,10 @@ export async function readAccount(
     warnings.push("Chưa đọc được lịch sử giao dịch từ DVDD. Hãy thử làm mới.");
   return {
     profile: profileResult.value,
-    orders: ordersResult.status === "fulfilled" ? ordersResult.value : null,
+    orders:
+      ordersResult.status === "fulfilled" ? ordersResult.value.rows : null,
+    phonePages:
+      ordersResult.status === "fulfilled" ? ordersResult.value.pages : 1,
     transactions:
       transactionsResult.status === "fulfilled"
         ? transactionsResult.value.rows

@@ -4,6 +4,7 @@ import "@fontsource/be-vietnam-pro/500.css";
 import "@fontsource/be-vietnam-pro/600.css";
 import "@fontsource/be-vietnam-pro/700.css";
 import "./globals.css";
+import "@/styles/dashboard.css";
 import "@/styles/account.css";
 
 export const metadata: Metadata = {

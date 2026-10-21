@@ -47,6 +47,20 @@ test("DVDD login shows the remote balance/history, handles stale data, isolates 
     updatedAt: new Date().toISOString(),
   };
   await page.route("**/api/phone", (route) => route.abort());
+  await page.route("**/api/history?*", (route) => {
+    const url = new URL(route.request().url());
+    return route.fulfill({
+      json: {
+        success: true,
+        data: {
+          kind: url.searchParams.get("kind"),
+          page: Number(url.searchParams.get("page")),
+          pages: 7,
+          rows: [],
+        },
+      },
+    });
+  });
   await page.route("**/api/connection", (route) =>
     route.fulfill({
       json: loggedIn
@@ -135,7 +149,8 @@ test("DVDD login shows the remote balance/history, handles stale data, isolates 
   );
   await page.getByRole("searchbox").fill("");
   await page.evaluate(() => {
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    if (document.activeElement instanceof HTMLElement)
+      document.activeElement.blur();
     window.scrollTo(0, 0);
   });
   await page.screenshot({
@@ -236,4 +251,15 @@ test("account routes reject invalid input, cross-origin login and invalid encryp
   expect(
     (await context.cookies()).some((c) => c.name === "dvdd_account_session"),
   ).toBe(false);
+  expect(
+    (await request.get("/api/history?kind=transactions&page=1001")).status(),
+  ).toBe(400);
+  expect((await request.get("/api/history?kind=unknown&page=1")).status()).toBe(
+    400,
+  );
+  const noHistorySession = await request.get(
+    "/api/history?kind=transactions&page=1",
+  );
+  expect(noHistorySession.status()).toBe(401);
+  expect(noHistorySession.headers()["cache-control"]).toBe("no-store, private");
 });

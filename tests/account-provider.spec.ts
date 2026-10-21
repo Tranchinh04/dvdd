@@ -5,6 +5,7 @@ import {
   parseProfile,
   parseTransactions,
   readAccount,
+  readHistoryPage,
 } from "../src/lib/server/account-provider";
 import {
   createAccountSession,
@@ -245,4 +246,41 @@ test("supplier sessions are encrypted, expire and cannot cross API-token account
       "fixture-key",
     ),
   ).toBeNull();
+});
+
+test("history pagination uses fixed read-only supplier routes and preserves the advertised page count", async () => {
+  const paths: string[] = [];
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    expect(url.origin).toBe("https://dvdd.casa");
+    expect(init?.method).toBe("GET");
+    expect(init?.redirect).toBe("manual");
+    expect(new Headers(init?.headers).get("cookie")).toBe(
+      "PHPSESSID=fixture-session",
+    );
+    paths.push(url.pathname + url.search);
+    return new Response(
+      url.searchParams.get("page") === "transactions" ? transactions : orders,
+    );
+  };
+  const jar = { PHPSESSID: "fixture-session" };
+  expect(await readHistoryPage(jar, "transactions", 7)).toMatchObject({
+    kind: "transactions",
+    page: 7,
+    pages: 7,
+    rows: [{ code: "TX_FIXTURE" }],
+  });
+  expect(await readHistoryPage(jar, "phones", 1)).toMatchObject({
+    kind: "phones",
+    page: 1,
+    pages: 1,
+    rows: [{ orderCode: "FIXTURE_ORDER" }],
+  });
+  await expect(
+    readHistoryPage(jar, "transactions", 1001),
+  ).rejects.toMatchObject({ status: 400 });
+  expect(paths).toEqual([
+    "/dashboard?page=transactions&paging=7",
+    "/dashboard?page=order-phone&paging=1",
+  ]);
 });

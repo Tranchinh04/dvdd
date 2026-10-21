@@ -12,10 +12,10 @@ test("empty workspace, navigation, responsive layout and demo purchase", async (
   });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Mua số điện thoại." }),
+    page.getByRole("heading", { name: "Mua số điện thoại" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Kết nối để mua số" }),
+    page.getByRole("button", { name: "Đăng nhập để mua số" }),
   ).toBeEnabled();
   await expect(
     page.getByRole("heading", { name: "Đơn hàng đầu tiên đang chờ bạn" }),
@@ -45,7 +45,7 @@ test("empty workspace, navigation, responsive layout and demo purchase", async (
   await page.getByRole("button", { name: "Đóng hộp thoại" }).click();
   await page.getByRole("button", { name: "Xem tất cả" }).click();
   await expect(
-    page.getByRole("heading", { name: "Lịch sử đơn hàng." }),
+    page.getByRole("heading", { name: "Lịch sử đơn hàng" }),
   ).toBeVisible();
   await page
     .getByRole("textbox", { name: "Tìm số điện thoại hoặc mã đơn" })
@@ -62,7 +62,7 @@ test("empty workspace, navigation, responsive layout and demo purchase", async (
     page.getByRole("heading", { name: "Đơn hàng đầu tiên đang chờ bạn" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Xem bản demo" }).click();
-  await expect(page.locator(".stat-card").first()).toContainText("07");
+  await expect(page.locator(".orders-panel .count-badge")).toContainText("7");
   await page.screenshot({
     path: "test-results/workspace-demo.png",
     fullPage: true,
@@ -90,7 +90,7 @@ test("empty workspace, navigation, responsive layout and demo purchase", async (
   await page.getByRole("button", { name: "Mở menu điều hướng" }).click();
   await page.getByRole("button", { name: "Thống kê sử dụng" }).click();
   await expect(
-    page.getByRole("heading", { name: "Thống kê sử dụng." }),
+    page.getByRole("heading", { name: "Thống kê sử dụng" }),
   ).toBeVisible();
   expect(
     await page.evaluate(
@@ -109,7 +109,7 @@ test("token is encrypted and HttpOnly; real UI buys once and resolves OTP throug
   let phoneCalls = 0;
   let otpCalls = 0;
   await page.goto("/");
-  await page.getByRole("button", { name: "Kết nối để mua số" }).click();
+  await page.getByRole("button", { name: "Cấu hình API", exact: true }).click();
   await page.getByLabel("API token", { exact: false }).first().fill(key);
   await page.getByRole("button", { name: "Lưu kết nối" }).click();
   await expect(page.locator(".token-status")).toContainText("Đã lưu token");

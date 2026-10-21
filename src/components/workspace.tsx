@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Check,
   CheckCheck,
+  ChevronDown,
   ChevronRight,
   CircleAlert,
   CircleCheck,
@@ -45,12 +46,13 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { exportOrders } from "@/lib/storage";
+import { historyInPeriod, type HistoryPeriod } from "@/lib/history";
 import {
   DVDD_BOT_URL,
-  Order,
+  HistoryOrder,
   ServiceId,
   SERVICES,
   displayPhone,
@@ -59,6 +61,7 @@ import {
 import { CopyButton, LogoMark, Modal, PhoneArtwork, StatusBadge } from "./ui";
 import { OrderTable } from "./order-table";
 import { AccountPanel, AccountStrip } from "./account-panel";
+import { UsageAnalytics } from "./usage-analytics";
 
 type View = "buy" | "history" | "analytics" | "settings" | "account";
 type Dialog = "purchase" | "detail" | "help" | "import" | "clear" | null;
@@ -80,10 +83,13 @@ export function Workspace() {
   const [mobileMode, setMobileMode] = useState(false);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [detailId, setDetailId] = useState("");
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<HistoryPeriod>("all");
   const mainRef = useRef<HTMLElement>(null);
   const { connection, demo, orders, notify, buying, checking, preferences } =
     workspace;
   const selected = SERVICES[service];
+  const historyOrders = workspace.history.records;
+  const analyticsOrders = historyInPeriod(historyOrders, analyticsPeriod);
   const accountName = workspace.account?.profile.name || "Tài khoản cá nhân";
   const initials =
     workspace.account?.profile.name
@@ -93,8 +99,10 @@ export function Workspace() {
       .filter((_, i, parts) => i === 0 || i === parts.length - 1)
       .join("")
       .toUpperCase() || "CN";
-  const detail = orders.find((order) => order.id === detailId);
-  const pending = orders.filter((order) => order.status === "waiting").length;
+  const detail = historyOrders.find((order) => order.id === detailId);
+  const pending = historyOrders.filter(
+    (order) => order.status === "waiting",
+  ).length;
   const navigate = (next: View) => {
     setView(next);
     setMobileOpen(false);
@@ -106,16 +114,22 @@ export function Workspace() {
       "Chưa sao chép được. Bạn có thể chọn và sao chép trực tiếp nội dung.",
       "error",
     );
-  const showDetail = (order: Order) => {
+  const showDetail = (order: { id: string }) => {
     setDetailId(order.id);
     setDialog("detail");
   };
   const buy = () => {
     if (!demo && !connection.configured) {
-      navigate("settings");
+      navigate("account");
       return;
     }
     setDialog("purchase");
+  };
+  const checkHistoryOrder = (order: HistoryOrder) => {
+    if (!demo && !connection.configured) navigate("settings");
+    else if (order.trackingOrder)
+      void workspace.checkOtp(order.trackingOrder, true);
+    else void workspace.refreshAccount();
   };
 
   useEffect(() => {
@@ -160,45 +174,31 @@ export function Workspace() {
           <LogoMark />
           <span>
             dvdd<span className="brand-dot">.</span>
-            <small>WORKSPACE</small>
+            <small>SỐ ĐIỆN THOẠI & OTP</small>
           </span>
         </button>
-        <div className="workspace-switcher">
-          <span className="workspace-avatar">P</span>
-          <span>
-            Không gian cá nhân<small>Quản lý số & OTP</small>
-          </span>
-          <LockKeyhole size={13} />
-        </div>
-        <div className="nav-label">KHÔNG GIAN LÀM VIỆC</div>
+        <div className="nav-label">DỊCH VỤ</div>
         <nav>
           {NAV_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              className={`nav-item ${view === item.id ? "active" : ""}`}
-              aria-current={view === item.id ? "page" : undefined}
-              onClick={() => navigate(item.id)}
-            >
-              <item.icon size={19} strokeWidth={1.7} />
-              <span>{item.label}</span>
-              {item.id === "history" && pending > 0 && (
-                <span className="nav-count">{pending}</span>
+            <Fragment key={item.id}>
+              {item.id === "account" && (
+                <div className="nav-label account-nav-label">TÀI KHOẢN</div>
               )}
-            </button>
+              <button
+                className={`nav-item ${view === item.id ? "active" : ""}`}
+                aria-current={view === item.id ? "page" : undefined}
+                onClick={() => navigate(item.id)}
+              >
+                <item.icon size={19} strokeWidth={1.7} />
+                <span>{item.label}</span>
+                {item.id === "history" && pending > 0 && (
+                  <span className="nav-count">{pending}</span>
+                )}
+              </button>
+            </Fragment>
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="sidebar-help">
-            <span className="help-spark">
-              <Sparkles size={19} />
-            </span>
-            <h3>Một chút hướng dẫn?</h3>
-            <p>Chỉ vài bước để có số điện thoại và nhận mã OTP.</p>
-            <button onClick={() => setDialog("help")}>
-              Khám phá cách sử dụng <ArrowUpRight size={14} />
-            </button>
-            <span className="help-decoration" />
-          </div>
           <button
             className="nav-item help-nav"
             onClick={() => setDialog("help")}
@@ -300,12 +300,6 @@ export function Workspace() {
 
           <div className="page-heading">
             <div>
-              <div className="eyebrow">
-                <span />{" "}
-                {view === "settings"
-                  ? "THIẾT LẬP KHÔNG GIAN"
-                  : "KHÔNG GIAN CỦA BẠN"}
-              </div>
               <h1>
                 {view === "buy"
                   ? "Mua số điện thoại"
@@ -316,7 +310,6 @@ export function Workspace() {
                       : view === "account"
                         ? "Tài khoản DVDD"
                         : "Cấu hình API"}
-                <span className="heading-dot">.</span>
               </h1>
               <p>
                 {view === "buy"
@@ -330,7 +323,7 @@ export function Workspace() {
                         : "Kết nối DVDD và thiết lập cách bạn muốn làm việc."}
               </p>
             </div>
-            {view === "buy" ? (
+            {view === "buy" && !demo ? (
               <div className="page-heading-actions">
                 <button
                   className="button secondary demo-button"
@@ -338,7 +331,7 @@ export function Workspace() {
                   onClick={workspace.toggleDemo}
                 >
                   <Play size={13} fill="currentColor" />
-                  {demo ? "Thoát dùng thử" : "Xem bản demo"}
+                  Xem bản demo
                 </button>
               </div>
             ) : view === "history" ? (
@@ -348,7 +341,7 @@ export function Workspace() {
               >
                 <Plus size={16} /> Mua số mới
               </button>
-            ) : (
+            ) : view !== "buy" ? (
               <span className="date-chip">
                 <CalendarDays size={15} />
                 {new Date().toLocaleDateString("vi-VN", {
@@ -357,16 +350,41 @@ export function Workspace() {
                   year: "numeric",
                 })}
               </span>
-            )}
+            ) : null}
           </div>
 
-          {view !== "settings" && view !== "account" && (
+          {view === "buy" && (
+            <AccountStrip
+              workspace={workspace}
+              onOpen={() => navigate("account")}
+            />
+          )}
+
+          {(view === "history" || view === "analytics") && (
             <>
-              <AccountStrip
-                workspace={workspace}
-                onOpen={() => navigate("account")}
+              <div className="history-source-toolbar">
+                <HistorySource
+                  workspace={workspace}
+                  onAccount={() => navigate("account")}
+                />
+                {view === "analytics" && (
+                  <select
+                    aria-label="Khoảng thời gian thống kê"
+                    value={analyticsPeriod}
+                    onChange={(event) =>
+                      setAnalyticsPeriod(event.target.value as HistoryPeriod)
+                    }
+                  >
+                    <option value="all">Toàn bộ thời gian</option>
+                    <option value="7">7 ngày qua</option>
+                    <option value="30">30 ngày qua</option>
+                  </select>
+                )}
+              </div>
+              <Stats
+                orders={view === "analytics" ? analyticsOrders : historyOrders}
+                provider={Boolean(workspace.account)}
               />
-              <Stats orders={orders} />
             </>
           )}
 
@@ -374,34 +392,12 @@ export function Workspace() {
 
           {view === "buy" && (
             <>
-              {!demo &&
-                !connection.configured &&
-                workspace.connectionLoaded && (
-                  <div className="connect-banner">
-                    <div className="connect-icon">
-                      <KeyRound size={19} />
-                    </div>
-                    <div>
-                      <strong>Bắt đầu bằng cách kết nối tài khoản DVDD</strong>
-                      <p>
-                        Thêm API token của bạn để mua số và nhận OTP ngay tại
-                        đây.
-                      </p>
-                    </div>
-                    <button
-                      className="button small"
-                      onClick={() => navigate("settings")}
-                    >
-                      Kết nối API <ArrowRight size={14} />
-                    </button>
-                  </div>
-                )}
               <div className="purchase-layout">
                 <section className="panel service-panel">
                   <div className="panel-heading">
                     <div>
-                      <h2>Chọn dịch vụ của bạn</h2>
-                      <p>Số điện thoại mới, sẵn sàng nhận OTP Shopee.</p>
+                      <h2>Chọn loại số điện thoại</h2>
+                      <p>Thuê số mới để nhận mã OTP Shopee.</p>
                     </div>
                     <span className="soft-label">
                       <Signal size={12} /> Việt Nam
@@ -446,13 +442,6 @@ export function Workspace() {
                           <small>đ</small>
                           <span>/ số điện thoại</span>
                         </span>
-                        <span className="service-divider" />
-                        <span className="service-feature">
-                          <CircleCheck size={14} /> Chưa đăng ký Shopee
-                        </span>
-                        <span className="service-feature">
-                          <CircleCheck size={14} /> Nhận mã OTP trực tiếp
-                        </span>
                         <span className={`service-tag ${id}`}>
                           {id === "standard" ? (
                             <Zap size={11} fill="currentColor" />
@@ -460,17 +449,17 @@ export function Workspace() {
                             <Signal size={11} />
                           )}
                           {id === "standard"
-                            ? "Tiết kiệm chi phí"
-                            : "Nhà mạng Vietnamobile"}
+                            ? "Lựa chọn phổ biến"
+                            : "Nhà mạng VNMB"}
                         </span>
                       </button>
                     ))}
                   </div>
                   <div className="service-footnote">
-                    <ShieldCheck size={15} />
+                    <CircleCheck size={15} />
                     <span>
-                      Giá tham khảo. Phí thực tế được cập nhật theo kết quả trả
-                      về từ DVDD.
+                      Số chưa đăng ký Shopee. Phí thực tế do DVDD trả về khi mua
+                      thành công.
                     </span>
                   </div>
                 </section>
@@ -518,7 +507,7 @@ export function Workspace() {
                       <Plus size={18} />
                     )}
                     {!demo && !connection.configured
-                      ? "Kết nối để mua số"
+                      ? "Đăng nhập để mua số"
                       : "Mua số ngay"}
                     {!buying && (demo || connection.configured) && (
                       <ArrowRight size={17} />
@@ -536,50 +525,13 @@ export function Workspace() {
                       {workspace.purchaseError}
                     </p>
                   )}
-                  <div className="checkout-tip">
-                    <span>
-                      <MessageSquareText size={17} />
-                    </span>
-                    <p>
-                      Sau khi mua, OTP sẽ được cập nhật tại{" "}
-                      <button onClick={() => navigate("history")}>
-                        lịch sử đơn hàng
-                      </button>
-                      .
-                    </p>
-                  </div>
                 </aside>
               </div>
-              <div className="how-it-works">
-                <span className="how-label">
-                  <Sparkles size={15} /> Đơn giản trong 3 bước
-                </span>
-                {[
-                  {
-                    title: "Chọn & mua số",
-                    description: "Chọn dịch vụ phù hợp",
-                  },
-                  {
-                    title: "Sử dụng số điện thoại",
-                    description: "Yêu cầu gửi mã xác minh",
-                  },
-                  { title: "Nhận mã OTP", description: "Sao chép và hoàn tất" },
-                ].map((step, index) => (
-                  <div className="how-step" key={step.title}>
-                    <span>{String(index + 1).padStart(2, "0")}</span>
-                    <div>
-                      <strong>{step.title}</strong>
-                      <small>{step.description}</small>
-                    </div>
-                    {index < 2 && <ChevronRight size={14} />}
-                  </div>
-                ))}
-              </div>
               <OrderTable
-                orders={orders}
+                orders={historyOrders}
                 recent
                 checking={checking}
-                onCheck={(order) => void workspace.checkOtp(order, true)}
+                onCheck={checkHistoryOrder}
                 onDetail={showDetail}
                 onAll={() => navigate("history")}
                 onImport={() => setDialog("import")}
@@ -589,7 +541,11 @@ export function Workspace() {
                     ?.scrollIntoView({ behavior: "smooth", block: "center" });
                 }}
                 onCopyError={copyError}
-                ready={workspace.ready}
+                ready={
+                  workspace.ready &&
+                  !workspace.accountLoading &&
+                  (!workspace.history.loading || historyOrders.length > 0)
+                }
               />
               <div className="polling-footer">
                 <span>
@@ -623,7 +579,10 @@ export function Workspace() {
                     ? `Tự động kiểm tra mỗi ${preferences.pollSeconds} giây`
                     : "Đang tạm dừng kiểm tra tự động"}
                   <span className="muted">·</span>
-                  {pending} đơn đang chờ
+                  {
+                    orders.filter((order) => order.status === "waiting").length
+                  }{" "}
+                  đơn đang theo dõi trên máy
                 </span>
                 <button
                   className="text-button"
@@ -638,7 +597,10 @@ export function Workspace() {
                     for (const order of waiting.slice(0, 10))
                       void workspace.checkOtp(order, true);
                   }}
-                  disabled={!pending || checking.length > 0}
+                  disabled={
+                    !orders.some((order) => order.status === "waiting") ||
+                    checking.length > 0
+                  }
                 >
                   <RefreshCw
                     size={14}
@@ -648,31 +610,37 @@ export function Workspace() {
                 </button>
               </div>
               <OrderTable
-                orders={orders}
+                orders={historyOrders}
                 checking={checking}
-                onCheck={(order) => {
-                  if (!demo && !connection.configured) navigate("settings");
-                  else void workspace.checkOtp(order, true);
-                }}
+                onCheck={checkHistoryOrder}
                 onDetail={showDetail}
                 onAll={() => navigate("history")}
                 onImport={() => setDialog("import")}
                 onBuy={() => navigate("buy")}
                 onCopyError={copyError}
-                ready={workspace.ready}
+                ready={
+                  workspace.ready &&
+                  !workspace.accountLoading &&
+                  (!workspace.history.loading || historyOrders.length > 0)
+                }
               />
               <div className="history-footnote">
                 <ShieldCheck size={15} />
                 <p>
-                  Lịch sử được lưu trên trình duyệt, riêng cho từng API token.
-                  Xuất CSV để giữ bản sao trước khi xóa dữ liệu trình duyệt.
+                  {workspace.account
+                    ? `Gộp đơn thuê số và giao dịch DVDD theo mã đơn. ${historyOrders.filter((order) => order.ledgerOnly).length} đơn cũ chỉ còn giao dịch, có thể thiếu số điện thoại hoặc OTP. Chỉ bao gồm lịch sử DVDD còn cung cấp.`
+                    : "Đơn trên máy được lưu riêng theo API token. Đăng nhập DVDD để tải thêm lịch sử tài khoản; xuất CSV để giữ bản sao."}
                 </p>
               </div>
             </>
           )}
 
           {view === "analytics" && (
-            <Analytics orders={orders} onBuy={() => navigate("buy")} />
+            <UsageAnalytics
+              orders={analyticsOrders}
+              period={analyticsPeriod}
+              onBuy={() => navigate("buy")}
+            />
           )}
           {view === "settings" && (
             <Settings
@@ -686,8 +654,7 @@ export function Workspace() {
           <footer className="app-footer">
             <span>
               © {new Date().getFullYear()} DVDD Workspace
-              <span className="footer-dot">·</span>Không gian nhỏ, mọi thứ gọn
-              gàng.
+              <span className="footer-dot">·</span>Quản lý số điện thoại & OTP
             </span>
             <button onClick={() => setDialog("help")}>
               Hướng dẫn & thông tin <ArrowUpRight size={12} />
@@ -787,15 +754,15 @@ export function Workspace() {
           onClose={() => setDialog(null)}
         >
           <div className="detail-top">
-            <StatusBadge status={detail.status} />
-            <span className="soft-label">
-              {SERVICES[detail.service].shortName}
-            </span>
+            <StatusBadge status={detail.status} label={detail.statusLabel} />
+            <span className="soft-label">{detail.serviceLabel}</span>
           </div>
           <div className="detail-phone">
             <span>SỐ ĐIỆN THOẠI</span>
             <strong>
-              {detail.phone ? displayPhone(detail.phone) : "Chưa có số"}
+              {detail.phone
+                ? displayPhone(detail.phone)
+                : "Không còn dữ liệu số"}
               {detail.phone && (
                 <CopyButton
                   value={displayPhone(detail.phone).replaceAll(" ", "")}
@@ -805,6 +772,13 @@ export function Workspace() {
               )}
             </strong>
           </div>
+          {detail.ledgerOnly && (
+            <p className="modal-note">
+              Đơn này được khôi phục từ giao dịch thuê số. DVDD không còn trả
+              chi tiết số điện thoại và OTP của đơn; trạng thái chỉ xác định khi
+              còn kết quả hoặc giao dịch hoàn tiền.
+            </p>
+          )}
           <div className={`detail-otp ${detail.otp ? "received" : ""}`}>
             <span>MÃ XÁC MINH OTP</span>
             {detail.otp ? (
@@ -826,7 +800,9 @@ export function Workspace() {
                 <p>
                   {detail.status === "expired"
                     ? "Đơn đã hết hạn theo phản hồi từ DVDD."
-                    : "Sử dụng số điện thoại để yêu cầu gửi mã xác minh."}
+                    : detail.status === "waiting"
+                      ? "Sử dụng số điện thoại để yêu cầu gửi mã xác minh."
+                      : "DVDD không còn cung cấp mã OTP của đơn này."}
                 </p>
               </>
             )}
@@ -854,8 +830,18 @@ export function Workspace() {
               <dd>{detail.fee}</dd>
             </div>
             <div>
-              <dt>Thời điểm lưu đơn</dt>
-              <dd>{new Date(detail.createdAt).toLocaleString("vi-VN")}</dd>
+              <dt>
+                {detail.fromProvider
+                  ? "Thời điểm mua tại DVDD"
+                  : "Thời điểm lưu đơn"}
+              </dt>
+              <dd>
+                {detail.createdAt
+                  ? new Date(detail.createdAt).toLocaleString("vi-VN", {
+                      timeZone: "Asia/Ho_Chi_Minh",
+                    })
+                  : `${detail.timeLabel || "Chưa rõ"} (DVDD chưa cung cấp năm)`}
+              </dd>
             </div>
             {detail.lastCheckedAt && (
               <div>
@@ -874,7 +860,7 @@ export function Workspace() {
                 if (!demo && !connection.configured) {
                   setDialog(null);
                   navigate("settings");
-                } else void workspace.checkOtp(detail, true);
+                } else checkHistoryOrder(detail);
               }}
             >
               <RefreshCw
@@ -956,10 +942,9 @@ export function Workspace() {
           <div className="info-box">
             <BookOpen size={17} />
             <p>
-              API DVDD chưa cung cấp số dư, danh sách đơn hay chức năng hủy/hoàn
-              tiền. Lịch sử được lưu trên trình duyệt này; bạn có thể xuất CSV
-              hoặc thêm lại đơn bằng mã đơn hàng. Trạng thái hết hạn chỉ cập
-              nhật khi DVDD xác nhận.
+              Đăng nhập tại mục Tài khoản DVDD để xem số dư và lịch sử từ nhà
+              cung cấp. Đơn theo dõi trên trình duyệt này có thể xuất CSV hoặc
+              thêm lại bằng mã đơn.
             </p>
           </div>
           <div className="modal-actions">
@@ -1033,7 +1018,78 @@ export function Workspace() {
   );
 }
 
-function Stats({ orders }: { orders: Order[] }) {
+function HistorySource({
+  workspace,
+  onAccount,
+}: {
+  workspace: WorkspaceState;
+  onAccount: () => void;
+}) {
+  const { account, accountLoading, accountError, demo, history } = workspace;
+  if (demo)
+    return (
+      <div className="history-source">
+        <span className="status-dot green" /> Dữ liệu dùng thử
+      </div>
+    );
+  if (!account)
+    return (
+      <div className="history-source">
+        {accountLoading ? (
+          <>
+            <LoaderCircle size={14} className="spin" /> Đang tải tài khoản DVDD…
+          </>
+        ) : (
+          <>
+            <Layers3 size={15} />
+            <span>{accountError || "Đang hiển thị đơn lưu trên máy."}</span>
+            <button className="text-button" onClick={onAccount}>
+              Đăng nhập để tải lịch sử DVDD <ArrowRight size={13} />
+            </button>
+          </>
+        )}
+      </div>
+    );
+  return (
+    <div className="history-source-block">
+      <div className="history-source" aria-live="polite">
+        {history.loading ? (
+          <LoaderCircle size={14} className="spin" />
+        ) : (
+          <span className="status-dot green" />
+        )}
+        <span>
+          {history.loading
+            ? `Đang đồng bộ DVDD · ${history.loaded}/${history.total} trang`
+            : history.error
+              ? "Lịch sử DVDD chưa đồng bộ đủ"
+              : `Lịch sử DVDD · Đã đồng bộ ${history.loaded} trang`}
+        </span>
+        <button
+          className="text-button"
+          disabled={history.loading || accountLoading}
+          onClick={() => void history.refresh()}
+        >
+          <RefreshCw size={13} /> Đồng bộ lại
+        </button>
+      </div>
+      {(history.error || accountError) && (
+        <p className="history-sync-error" role="alert">
+          {history.error || accountError} Dữ liệu đã tải vẫn được giữ; các số
+          tổng có thể chưa đầy đủ.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Stats({
+  orders,
+  provider,
+}: {
+  orders: HistoryOrder[];
+  provider: boolean;
+}) {
   const waiting = orders.filter((order) => order.status === "waiting").length;
   const received = orders.filter((order) => order.status === "received").length;
   const knownFees = orders.filter((order) => order.feeAmount !== null);
@@ -1043,11 +1099,13 @@ function Stats({ orders }: { orders: Order[] }) {
   );
   const stats = [
     {
-      label: "Đơn trên trình duyệt",
+      label: "Tổng đơn đã tải",
       value: String(orders.length).padStart(2, "0"),
       icon: Smartphone,
       className: "purple",
-      note: "Đã lưu trên trình duyệt này",
+      note: provider
+        ? "Từ lịch sử DVDD và đơn trên máy"
+        : "Đã lưu trên trình duyệt này",
       noteIcon: Layers3,
     },
     {
@@ -1067,14 +1125,16 @@ function Stats({ orders }: { orders: Order[] }) {
       noteIcon: CheckCheck,
     },
     {
-      label: "Chi phí đơn đã lưu",
-      value: money(spend),
+      label: "Phí thuê ghi nhận",
+      value: orders.length && !knownFees.length ? "—" : money(spend),
       icon: Wallet,
       className: "blue",
       note:
         orders.length > knownFees.length
           ? `${knownFees.length}/${orders.length} đơn có dữ liệu phí`
-          : "Phí các đơn trên trình duyệt này",
+          : provider
+            ? "Đã trừ các khoản hoàn ghi nhận"
+            : "Phí các đơn trên trình duyệt này",
       noteIcon: CreditCard,
     },
   ];
@@ -1098,200 +1158,6 @@ function Stats({ orders }: { orders: Order[] }) {
         </div>
       ))}
     </div>
-  );
-}
-
-function Analytics({ orders, onBuy }: { orders: Order[]; onBuy: () => void }) {
-  const days = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() - 6 + index);
-    const next = new Date(date);
-    next.setDate(next.getDate() + 1);
-    const inDay = orders.filter(
-      (order) =>
-        Date.parse(order.createdAt) >= +date &&
-        Date.parse(order.createdAt) < +next,
-    );
-    return {
-      date,
-      count: inDay.length,
-      received: inDay.filter((order) => order.status === "received").length,
-    };
-  });
-  const max = Math.max(...days.map((day) => day.count), 4);
-  const ended = orders.filter((order) => order.status !== "waiting");
-  const successRate = ended.length
-    ? Math.round(
-        (orders.filter((order) => order.status === "received").length /
-          ended.length) *
-          100,
-      )
-    : null;
-  return (
-    <>
-      <div className="analytics-layout">
-        <section className="panel chart-panel">
-          <div className="panel-heading">
-            <div>
-              <h2>Hoạt động trong tuần</h2>
-              <p>Số đơn được lưu trong 7 ngày gần nhất.</p>
-            </div>
-            <span className="soft-label">
-              <CalendarDays size={13} /> 7 ngày qua
-            </span>
-          </div>
-          <div className="chart-legend">
-            <span>
-              <i /> Tổng số đơn
-            </span>
-            <span>
-              <i /> Đã nhận OTP
-            </span>
-          </div>
-          <div className="chart">
-            <div className="chart-y-axis">
-              {[
-                max,
-                Math.round(max * 0.75),
-                Math.round(max * 0.5),
-                Math.round(max * 0.25),
-                0,
-              ].map((value, index) => (
-                <span key={index}>{value}</span>
-              ))}
-            </div>
-            <div className="chart-bars">
-              {days.map((day, index) => (
-                <div className="chart-column" key={index}>
-                  <div
-                    className="bar-group"
-                    title={`${day.date.toLocaleDateString("vi-VN")}: ${day.count} đơn, ${day.received} OTP`}
-                  >
-                    <span
-                      className="bar"
-                      style={{
-                        height: `${Math.max((day.count / max) * 100, 1)}%`,
-                      }}
-                    >
-                      <i>{day.count}</i>
-                    </span>
-                    <span
-                      className="bar received"
-                      style={{
-                        height: `${Math.max((day.received / max) * 100, 1)}%`,
-                      }}
-                    />
-                  </div>
-                  <span className="chart-day">
-                    {index === 6
-                      ? "Hôm nay"
-                      : day.date.toLocaleDateString("vi-VN", {
-                          day: "2-digit",
-                          month: "2-digit",
-                        })}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="chart-caption">
-            Dựa trên thời điểm lưu đơn tại trình duyệt này.
-          </div>
-        </section>
-        <section className="panel rate-panel">
-          <div className="panel-heading">
-            <h2>Tình trạng nhận OTP</h2>
-          </div>
-          <div
-            className="rate-ring"
-            style={{
-              background: `conic-gradient(var(--primary) ${(successRate || 0) * 3.6}deg, #efedf6 0deg)`,
-            }}
-          >
-            <div>
-              <strong>{successRate === null ? "—" : `${successRate}%`}</strong>
-              <span>đã nhận OTP</span>
-            </div>
-          </div>
-          <p>Tính trên {ended.length} đơn đã nhận OTP hoặc hết hạn.</p>
-          <div className="rate-breakdown">
-            <span>
-              <i className="green-dot" /> Đã nhận OTP
-              <strong>
-                {orders.filter((o) => o.status === "received").length}
-              </strong>
-            </span>
-            <span>
-              <i className="amber-dot" /> Đang chờ
-              <strong>
-                {orders.filter((o) => o.status === "waiting").length}
-              </strong>
-            </span>
-            <span>
-              <i /> Đã hết hạn
-              <strong>
-                {orders.filter((o) => o.status === "expired").length}
-              </strong>
-            </span>
-          </div>
-        </section>
-      </div>
-      <section className="panel breakdown-panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Dịch vụ đã sử dụng</h2>
-            <p>Phân bổ đơn hàng và chi phí theo từng dịch vụ.</p>
-          </div>
-          <button
-            className="button secondary small"
-            disabled={!orders.length}
-            onClick={() => exportOrders(orders)}
-          >
-            <Download size={14} /> Xuất dữ liệu
-          </button>
-        </div>
-        {(Object.keys(SERVICES) as ServiceId[]).map((id) => {
-          const serviceOrders = orders.filter((o) => o.service === id);
-          const paid = serviceOrders.filter((o) => o.feeAmount !== null);
-          return (
-            <div className="breakdown-row" key={id}>
-              <span className={`service-icon ${id}`}>
-                <Smartphone size={20} />
-              </span>
-              <div>
-                <strong>{SERVICES[id].name}</strong>
-                <span>
-                  {serviceOrders.length} đơn hàng · {paid.length} đơn có phí
-                </span>
-              </div>
-              <div className="breakdown-track">
-                <span
-                  style={{
-                    width: `${orders.length ? (serviceOrders.length / orders.length) * 100 : 0}%`,
-                  }}
-                />
-              </div>
-              <strong>
-                {paid.length
-                  ? money(paid.reduce((sum, o) => sum + (o.feeAmount || 0), 0))
-                  : serviceOrders.length
-                    ? "Chưa rõ"
-                    : "0đ"}
-              </strong>
-            </div>
-          );
-        })}
-        {!orders.length && (
-          <div className="analytics-empty-note">
-            Một vài con số ý nghĩa bắt đầu từ đơn hàng đầu tiên.{" "}
-            <button className="text-button" onClick={onBuy}>
-              Mua số ngay <ArrowRight size={14} />
-            </button>
-          </div>
-        )}
-      </section>
-    </>
   );
 }
 
@@ -1355,11 +1221,11 @@ function Settings({
               {connection.configured ? "Đã cấu hình" : "Chưa cấu hình"}
             </span>
           </div>
-          <div className="token-onboarding">
+          <details className="token-onboarding">
+            <summary>
+              Lấy API token ở đâu? <ChevronDown size={15} />
+            </summary>
             <div className="token-onboarding-heading">
-              <span className="soft-label purple">
-                <Sparkles size={12} /> LẦN ĐẦU SỬ DỤNG
-              </span>
               <a
                 href={DVDD_BOT_URL}
                 target="_blank"
@@ -1388,7 +1254,7 @@ function Settings({
               Trước khi mua số, nạp số dư trong DVDD tại{" "}
               <strong>Tài chính → Nạp tiền</strong>.
             </p>
-          </div>
+          </details>
           <form
             onSubmit={async (event) => {
               event.preventDefault();
@@ -1437,9 +1303,8 @@ function Settings({
               </button>
             </div>
             <p className="field-hint">
-              Token được lưu bảo mật. Việc lưu cấu hình không mua số và không
-              trừ tiền. API token riêng lẻ chưa cung cấp số dư và lịch sử tài
-              khoản trong tài liệu DVDD hiện có.
+              Token dùng để mua số và lấy OTP. Đăng nhập DVDD để xem thêm số dư
+              và lịch sử tài khoản.
             </p>
             {connection.configured && (
               <div className="token-status">
@@ -1633,46 +1498,25 @@ function Settings({
       </div>
       <aside className="settings-aside">
         <div className="panel getting-started">
-          <PhoneArtwork />
-          <span className="eyebrow">KẾT NỐI TRONG MỘT PHÚT</span>
-          <h3>
-            Sẵn sàng cho
-            <br />
-            số điện thoại đầu tiên?
-          </h3>
-          <p>Token nằm trong mục API của mini app dvddBot trên Telegram.</p>
-          <div className="aside-steps">
-            <span>
-              <i>1</i> Mở dvddBot & đăng nhập DVDD
-            </span>
-            <span>
-              <i>2</i> API → Api token → Sao chép
-            </span>
-            <span>
-              <i>3</i> Dán token & lưu kết nối
-            </span>
-          </div>
+          <span className="settings-icon">
+            <CircleHelp size={21} />
+          </span>
+          <h3>Bạn cần hỗ trợ?</h3>
+          <p>
+            Lấy token, đăng ký và nạp tiền trong mini app của @dvddBot trên
+            Telegram.
+          </p>
           <a
-            className="button primary full-width telegram-launch"
+            className="button secondary full-width telegram-launch"
             href={DVDD_BOT_URL}
             target="_blank"
             rel="noopener noreferrer"
           >
-            Mở dvddBot trên Telegram <ExternalLink size={14} />
+            Mở dvddBot <ExternalLink size={14} />
           </a>
-          <button className="button secondary full-width" onClick={onHelp}>
+          <button className="text-button" onClick={onHelp}>
             Xem hướng dẫn <ArrowUpRight size={14} />
           </button>
-        </div>
-        <div className="privacy-note">
-          <ShieldCheck size={20} />
-          <div>
-            <strong>Không gian riêng của bạn</strong>
-            <p>
-              Token được bảo vệ trên máy chủ. Lịch sử và OTP chỉ lưu trên trình
-              duyệt bạn đang sử dụng.
-            </p>
-          </div>
         </div>
       </aside>
     </div>

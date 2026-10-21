@@ -1,4 +1,4 @@
-import type { Order } from "./types";
+import type { HistoryOrder, Order } from "./types";
 
 export function readOrders(raw: string | null): Order[] {
   if (!raw) return [];
@@ -8,20 +8,20 @@ export function readOrders(raw: string | null): Order[] {
   return parsed.filter((item): item is Order =>
     Boolean(
       item &&
-        typeof item === "object" &&
-        typeof item.id === "string" &&
-        typeof item.phone === "string" &&
-        typeof item.orderCode === "string" &&
-        /^[a-zA-Z0-9_-]{1,100}$/.test(item.orderCode) &&
-        (item.service === "standard" || item.service === "vnmb") &&
-        ["waiting", "received", "expired"].includes(item.status) &&
-        typeof item.otp === "string" &&
-        typeof item.fee === "string" &&
-        (item.feeAmount === null ||
-          (typeof item.feeAmount === "number" &&
-            Number.isFinite(item.feeAmount))) &&
-        typeof item.createdAt === "string" &&
-        Number.isFinite(Date.parse(item.createdAt)),
+      typeof item === "object" &&
+      typeof item.id === "string" &&
+      typeof item.phone === "string" &&
+      typeof item.orderCode === "string" &&
+      /^[a-zA-Z0-9_-]{1,100}$/.test(item.orderCode) &&
+      (item.service === "standard" || item.service === "vnmb") &&
+      ["waiting", "received", "expired"].includes(item.status) &&
+      typeof item.otp === "string" &&
+      typeof item.fee === "string" &&
+      (item.feeAmount === null ||
+        (typeof item.feeAmount === "number" &&
+          Number.isFinite(item.feeAmount))) &&
+      typeof item.createdAt === "string" &&
+      Number.isFinite(Date.parse(item.createdAt)),
     ),
   );
 }
@@ -88,7 +88,7 @@ export function demoOrders(): Order[] {
   }));
 }
 
-export function exportOrders(orders: Order[]) {
+export function exportOrders(orders: (Order | HistoryOrder)[]) {
   const escape = (value: unknown) => {
     let text = String(value ?? "");
     if (/^[=+\-@\t\r]/.test(text)) text = "'" + text;
@@ -106,15 +106,21 @@ export function exportOrders(orders: Order[]) {
   const rows = orders.map((o) => [
     o.phone,
     o.orderCode,
-    o.service === "vnmb" ? "Vietnamobile" : "Số thường",
+    "serviceLabel" in o
+      ? o.serviceLabel
+      : o.service === "vnmb"
+        ? "Vietnamobile"
+        : "Số thường",
     o.fee,
     o.status === "received"
       ? "Đã nhận OTP"
       : o.status === "expired"
         ? "Hết hạn"
-        : "Đang chờ",
+        : o.status === "waiting"
+          ? "Đang chờ"
+          : "Chưa rõ trạng thái",
     o.otp,
-    o.createdAt,
+    o.createdAt || ("timeLabel" in o ? o.timeLabel : ""),
   ]);
   const blob = new Blob(
     [
