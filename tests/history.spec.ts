@@ -204,3 +204,48 @@ test("all-time analytics includes older years, uses dated records only in charts
   ).toBe(3);
   expect(historyBuckets(rows, "all", now).length).toBeLessThanOrEqual(7);
 });
+
+test("supplier placing status belongs to waiting while unknown and finished orders stay separate", () => {
+  for (const status of ["Đang đặt", " ĐANG   ĐẶT ", "Đang chờ", "Đang xử lý"]) {
+    const [row] = mergeHistory([], [{ ...phone, status, result: "" }], []);
+    expect(row).toMatchObject({ status: "waiting", otp: "" });
+    expect(row.statusLabel).toBeUndefined();
+  }
+  expect(
+    mergeHistory(
+      [],
+      [{ ...phone, status: "Đặt lỗi/Hết hạn", result: "" }],
+      [],
+    )[0].status,
+  ).toBe("expired");
+  expect(
+    mergeHistory([], [{ ...phone, status: "Chưa xác định", result: "" }], [])[0]
+      .status,
+  ).toBe("unknown");
+});
+
+test("fresh OTP checks survive stale supplier pages without resuming ended orders", () => {
+  const waiting = { ...phone, status: "Đang đặt", result: "" };
+  const check = {
+    status: "received" as const,
+    otp: "654321",
+    lastCheckedAt: "2026-10-22T09:00:00.000Z",
+  };
+  expect(
+    mergeHistory([], [waiting], [], { [phone.orderCode]: check })[0],
+  ).toMatchObject({
+    status: "received",
+    otp: "654321",
+    lastCheckedAt: check.lastCheckedAt,
+  });
+  expect(
+    mergeHistory([], [waiting], [], {
+      [phone.orderCode]: { ...check, status: "expired", otp: "" },
+    })[0].status,
+  ).toBe("expired");
+  expect(
+    mergeHistory([], [phone], [], {
+      [phone.orderCode]: { ...check, status: "waiting", otp: "" },
+    })[0],
+  ).toMatchObject({ status: "received", otp: phone.result });
+});

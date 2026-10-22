@@ -8,6 +8,7 @@ import {
   Connection,
   AccountResponse,
   DvddAccount,
+  HistoryOrder,
   Order,
   Preferences,
   ServiceId,
@@ -51,6 +52,11 @@ export function useWorkspace() {
   const [checking, setChecking] = useState<string[]>([]);
   const busyBuying = useRef(false);
   const inFlight = useRef(new Set<string>());
+  const observedOrders = useRef({
+    scope: "",
+    statuses: new Map<string, HistoryOrder["status"]>(),
+  });
+  const waitingOrdersRef = useRef<HistoryOrder[]>([]);
   const scopeRef = useRef("");
   const key = demo
     ? "dvdd.orders.demo.v1"
@@ -151,6 +157,64 @@ export function useWorkspace() {
     storageReady === key ? orders : [],
     expireAccount,
   );
+  const waitingOrders = history.records.filter(
+    (order) => order.status === "waiting",
+  );
+  waitingOrdersRef.current = waitingOrders;
+  const recordProviderCheck = history.recordCheck;
+
+  useEffect(() => {
+    if (storageReady !== key) return;
+    const previous =
+      observedOrders.current.scope === key
+        ? observedOrders.current.statuses
+        : null;
+    observedOrders.current = {
+      scope: key,
+      statuses: new Map(
+        history.records.map((order) => [order.orderCode, order.status]),
+      ),
+    };
+    if (!previous) return;
+    const received = history.records.filter(
+      (order) =>
+        previous.get(order.orderCode) === "waiting" &&
+        order.status === "received",
+    );
+    const expired = history.records.filter(
+      (order) =>
+        previous.get(order.orderCode) === "waiting" &&
+        order.status === "expired",
+    );
+    const added = history.records.filter(
+      (order) =>
+        (!previous.has(order.orderCode) ||
+          previous.get(order.orderCode) === "unknown") &&
+        order.status === "waiting" &&
+        !order.trackingOrder,
+    );
+    const messages: string[] = [];
+    if (received.length)
+      messages.push(
+        received.length === 1
+          ? `Đã nhận OTP cho số ${received[0].phone || received[0].orderCode}.`
+          : `Đã nhận OTP cho ${received.length} đơn hàng.`,
+      );
+    if (expired.length)
+      messages.push(
+        expired.length === 1
+          ? `Đơn ${expired[0].orderCode} đã hết hạn.`
+          : `${expired.length} đơn hàng đã hết hạn.`,
+      );
+    if (added.length)
+      messages.push(
+        added.length === 1
+          ? `Có đơn thuê số mới ${added[0].orderCode}, đang chờ OTP.`
+          : `Có ${added.length} đơn thuê số mới đang chờ OTP.`,
+      );
+    if (messages.length)
+      notify(messages.join(" "), received.length ? "success" : "info");
+  }, [history.records, key, storageReady, notify]);
 
   useEffect(() => {
     if (!account || storageReady !== key) return;
@@ -303,7 +367,7 @@ export function useWorkspace() {
   }, [notice]);
 
   const checkOtp = useCallback(
-    async (order: Order, manual = false) => {
+    async (order: Order | HistoryOrder, manual = false) => {
       if (
         order.status !== "waiting" ||
         inFlight.current.has(order.orderCode) ||
@@ -320,7 +384,8 @@ export function useWorkspace() {
                 () =>
                   resolve({
                     otp:
-                      Date.now() - Date.parse(order.createdAt) > 15_000
+                      Date.now() - Date.parse(order.createdAt || "1970-01-01") >
+                      15_000
                         ? "582491"
                         : "",
                   }),
@@ -331,22 +396,24 @@ export function useWorkspace() {
               orderCode: order.orderCode,
             });
         if (scope !== scopeRef.current) return;
+        const update = {
+          otp: result.otp,
+          status: result.otp ? ("received" as const) : ("waiting" as const),
+          lastCheckedAt: new Date().toISOString(),
+          lastError: undefined,
+        };
+        recordProviderCheck(scope, order.orderCode, update);
         setOrders((previous) =>
           previous.map((item) =>
-            item.id === order.id
+            item.orderCode === order.orderCode && item.status === "waiting"
               ? {
                   ...item,
-                  otp: result.otp,
-                  status: result.otp ? "received" : "waiting",
-                  lastCheckedAt: new Date().toISOString(),
-                  lastError: undefined,
+                  ...update,
                 }
               : item,
           ),
         );
-        if (result.otp)
-          notify(`Đã nhận OTP cho số ${order.phone || order.orderCode}.`);
-        else if (manual)
+        if (!result.otp && manual)
           notify(
             "Chưa có OTP. Hệ thống sẽ tiếp tục theo dõi khi bật tự động.",
             "info",
@@ -357,19 +424,26 @@ export function useWorkspace() {
           error instanceof Error ? error.message : "Không kiểm tra được OTP.";
         const expired =
           error instanceof ClientError && error.code === "ORDER_EXPIRED";
+        const lastCheckedAt = new Date().toISOString();
+        recordProviderCheck(scope, order.orderCode, {
+          status: expired ? "expired" : "waiting",
+          otp: "",
+          lastError: message,
+          lastCheckedAt,
+        });
         setOrders((previous) =>
           previous.map((item) =>
-            item.id === order.id
+            item.orderCode === order.orderCode && item.status === "waiting"
               ? {
                   ...item,
                   status: expired ? "expired" : item.status,
                   lastError: message,
-                  lastCheckedAt: new Date().toISOString(),
+                  lastCheckedAt,
                 }
               : item,
           ),
         );
-        if (manual) notify(message, expired ? "info" : "error");
+        if (manual && !expired) notify(message, "error");
       } finally {
         inFlight.current.delete(order.orderCode);
         setChecking((previous) =>
@@ -377,7 +451,7 @@ export function useWorkspace() {
         );
       }
     },
-    [demo, connection.configured, notify],
+    [demo, connection.configured, notify, recordProviderCheck],
   );
 
   useEffect(() => {
@@ -389,7 +463,7 @@ export function useWorkspace() {
       return;
     const timer = setInterval(() => {
       if (document.visibilityState !== "visible") return;
-      const due = orders
+      const due = waitingOrdersRef.current
         .filter(
           (order) =>
             order.status === "waiting" &&
@@ -408,15 +482,7 @@ export function useWorkspace() {
       for (const order of due.slice(0, 3)) void checkOtp(order);
     }, 1000);
     return () => clearInterval(timer);
-  }, [
-    orders,
-    preferences,
-    demo,
-    connection.configured,
-    checkOtp,
-    storageReady,
-    key,
-  ]);
+  }, [preferences, demo, connection.configured, checkOtp, storageReady, key]);
 
   async function buy(service: ServiceId) {
     if (busyBuying.current || storageReady !== key) return null;
@@ -573,6 +639,7 @@ export function useWorkspace() {
     logout,
     demo,
     orders,
+    waitingOrders,
     history,
     preferences,
     notice,

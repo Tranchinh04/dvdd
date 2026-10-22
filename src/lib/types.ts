@@ -64,6 +64,13 @@ export type DvddAccount = {
 
 export type HistoryStatus = OrderStatus | "unknown";
 
+export type OrderCheck = {
+  status: OrderStatus;
+  otp: string;
+  lastCheckedAt: string;
+  lastError?: string;
+};
+
 export type HistoryOrder = Omit<Order, "service" | "status" | "createdAt"> & {
   service: ServiceId | null;
   serviceLabel: string;

@@ -127,9 +127,7 @@ export function Workspace() {
   };
   const checkHistoryOrder = (order: HistoryOrder) => {
     if (!demo && !connection.configured) navigate("settings");
-    else if (order.trackingOrder)
-      void workspace.checkOtp(order.trackingOrder, true);
-    else void workspace.refreshAccount();
+    else void workspace.checkOtp(order.trackingOrder || order, true);
   };
 
   useEffect(() => {
@@ -553,7 +551,7 @@ export function Workspace() {
                     className={`status-dot ${preferences.autoPoll ? "green" : ""}`}
                   />
                   {preferences.autoPoll
-                    ? `Tự động kiểm tra OTP mỗi ${preferences.pollSeconds} giây khi tab đang mở`
+                    ? `Tự động kiểm tra OTP mỗi ${preferences.pollSeconds} giây khi tab đang mở · ${pending} đơn đang chờ`
                     : "Đang tạm dừng kiểm tra OTP tự động"}
                 </span>
                 <button
@@ -579,28 +577,19 @@ export function Workspace() {
                     ? `Tự động kiểm tra mỗi ${preferences.pollSeconds} giây`
                     : "Đang tạm dừng kiểm tra tự động"}
                   <span className="muted">·</span>
-                  {
-                    orders.filter((order) => order.status === "waiting").length
-                  }{" "}
-                  đơn đang theo dõi trên máy
+                  {pending} đơn đang chờ OTP
                 </span>
                 <button
                   className="text-button"
                   onClick={() => {
-                    const waiting = orders.filter(
-                      (order) => order.status === "waiting",
-                    );
                     if (!demo && !connection.configured) {
                       navigate("settings");
                       return;
                     }
-                    for (const order of waiting.slice(0, 10))
+                    for (const order of workspace.waitingOrders.slice(0, 10))
                       void workspace.checkOtp(order, true);
                   }}
-                  disabled={
-                    !orders.some((order) => order.status === "waiting") ||
-                    checking.length > 0
-                  }
+                  disabled={!pending || checking.length > 0}
                 >
                   <RefreshCw
                     size={14}

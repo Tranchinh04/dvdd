@@ -4,6 +4,7 @@ import {
   type HistoryOrder,
   type HistoryStatus,
   type Order,
+  type OrderCheck,
   type ServiceId,
   SERVICES,
   money,
@@ -48,7 +49,8 @@ function remoteStatus(order: DvddPhoneOrder): HistoryStatus {
   )
     return "received";
   if (/hết hạn|đặt lỗi|thất bại|đã hủy/i.test(order.status)) return "expired";
-  if (/đang chờ|chờ otp|đang xử lý/i.test(order.status)) return "waiting";
+  if (/đang chờ|chờ otp|đang xử lý|^\s*đang\s+đặt\s*$/i.test(order.status))
+    return "waiting";
   return "unknown";
 }
 
@@ -56,6 +58,7 @@ export function mergeHistory(
   local: Order[],
   phones: DvddPhoneOrder[],
   transactions: DvddTransaction[],
+  checks: Readonly<Record<string, OrderCheck>> = {},
 ): HistoryOrder[] {
   const rows = new Map<string, HistoryOrder>();
   for (const order of local) {
@@ -144,7 +147,9 @@ export function mergeHistory(
       existing &&
       (existing.status === "received" || existing.status === "expired")
         ? existing.status
-        : status;
+        : status === "unknown" && existing?.trackingOrder?.status === "waiting"
+          ? "waiting"
+          : status;
     rows.set(order.orderCode, {
       id: existing?.id || `dvdd-${order.orderCode}`,
       orderCode: order.orderCode,
@@ -180,9 +185,25 @@ export function mergeHistory(
       lastError: existing?.lastError,
     });
   }
-  return [...rows.values()].sort((a, b) =>
-    (b.createdAt || "").localeCompare(a.createdAt || ""),
-  );
+  return [...rows.values()]
+    .map((row) => {
+      const check = checks[row.orderCode];
+      if (!row.fromProvider || !check) return row;
+      const status = check.otp
+        ? "received"
+        : row.status === "received" || row.status === "expired"
+          ? row.status
+          : check.status;
+      return {
+        ...row,
+        status,
+        otp: check.otp || row.otp,
+        statusLabel: undefined,
+        lastCheckedAt: check.lastCheckedAt,
+        lastError: status === "waiting" ? check.lastError : undefined,
+      };
+    })
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
 export type HistoryPeriod = "all" | "7" | "30";

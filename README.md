@@ -64,7 +64,7 @@ DVDD_API_KEY=
 - Mua một số mỗi lần, chọn số thường hoặc Vietnamobile và xác nhận trước khi gọi API có tính phí.
 - Hiển thị giá tham khảo **4.500đ / 5.500đ**, lưu phí thực tế từ trường `fee`. Các ví dụ API bạn cung cấp có phí khác tiêu đề, nên không dùng giá tham khảo để tính tổng chi phí thật.
 - Chuẩn hóa số Việt Nam để hiển thị và sao chép, giữ nguyên số gốc trong dữ liệu đơn.
-- Tự kiểm tra OTP mỗi 5, 10, 15 hoặc 30 giây khi tab đang hiển thị; có thể tạm dừng hoặc kiểm tra thủ công.
+- Tự kiểm tra OTP mỗi 5, 10, 15 hoặc 30 giây khi tab đang hiển thị, cho cả đơn trên máy và đơn DVDD xác nhận đang chờ. Trạng thái “Đang đặt” được gộp thành “Đang chờ OTP”; tiêu đề và bộ lọc hiển thị số đơn chờ. Báo trong ứng dụng khi có đơn chờ mới, nhận OTP hoặc hết hạn; có thể tạm dừng hoặc kiểm tra thủ công.
 - Mỗi nhịp tự động kiểm tra tối đa ba đơn. Lỗi tạm thời được giãn chu kỳ tối thiểu 30 giây; dừng theo dõi khi đã có OTP hoặc DVDD xác nhận hết hạn.
 - Lịch sử riêng theo token, tìm số/mã đơn/OTP, lọc trạng thái/nhà mạng/thời gian, phân trang và xuất CSV tương thích Excel.
 - Thêm đơn đã có bằng `orderCode` để tiếp tục theo dõi OTP. API không cung cấp phí và thời điểm mua gốc của đơn được thêm lại.
@@ -99,7 +99,7 @@ Lịch sử DVDD hiển thị đúng phạm vi nhà cung cấp còn cung cấp. 
 
 Thời điểm mua được ghép với giao dịch có mã đơn và năm đầy đủ, theo múi giờ Việt Nam. Nếu không xác định được năm, ứng dụng giữ nguyên văn bản thời gian và loại đơn đó khỏi biểu đồ/bộ lọc ngày. Đơn vẫn được tính trong tổng toàn bộ thời gian. Tỷ lệ nhận OTP chỉ tính các đơn có kết quả xác định.
 
-Đơn mua/theo dõi qua ứng dụng vẫn lưu riêng theo token tại `localStorage`. Dữ liệu đọc từ DVDD được dùng chung cho đơn gần đây, **Lịch sử đơn hàng** và **Thống kê sử dụng**, chỉ giữ trong bộ nhớ của phiên và không tự đưa đơn cũ vào vòng kiểm tra OTP. Đơn đang theo dõi trên máy dừng kiểm tra khi dữ liệu DVDD xác nhận đã kết thúc. Có thể đăng nhập lại từ máy khác để đọc phần lịch sử DVDD còn cung cấp; xuất CSV để giữ bản sao. Xóa lịch sử trên máy không xóa đơn ở DVDD. Chế độ dùng thử tắt khi tải lại trang, dữ liệu demo vẫn được giữ riêng.
+Đơn mua/theo dõi qua ứng dụng vẫn lưu riêng theo token tại `localStorage`. Dữ liệu đọc từ DVDD được dùng chung cho đơn gần đây, **Lịch sử đơn hàng** và **Thống kê sử dụng**, chỉ giữ trong bộ nhớ của phiên. Chỉ tự kiểm tra đơn có trạng thái đang chờ; đơn cũ đã kết thúc hoặc chỉ còn giao dịch không bị kiểm tra. Kết quả kiểm tra đơn DVDD được giữ riêng theo tài khoản trong phiên để trạng thái trang web chưa cập nhật không làm mất OTP vừa nhận hoặc tiếp tục kiểm tra đơn đã hết hạn. Có thể đăng nhập lại từ máy khác để đọc phần lịch sử DVDD còn cung cấp; xuất CSV để giữ bản sao. Xóa lịch sử trên máy không xóa đơn ở DVDD. Chế độ dùng thử tắt khi tải lại trang, dữ liệu demo vẫn được giữ riêng.
 
 ## Kiểm tra và build
 

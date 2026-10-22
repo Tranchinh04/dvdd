@@ -11,6 +11,7 @@ import {
   Search,
   X,
   CircleAlert,
+  BellRing,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { exportOrders } from "@/lib/storage";
@@ -46,6 +47,7 @@ export function OrderTable({
   const [period, setPeriod] = useState("all");
   const [page, setPage] = useState(1);
   const pageSize = recent ? 4 : 8;
+  const waiting = orders.filter((order) => order.status === "waiting").length;
   const filtered = useMemo(
     () =>
       orders.filter((order) => {
@@ -77,7 +79,7 @@ export function OrderTable({
   );
   const tabs: { value: typeof filter; label: string }[] = [
     { value: "all", label: "Tất cả" },
-    { value: "waiting", label: "Đang chờ" },
+    { value: "waiting", label: "Đang chờ OTP" },
     { value: "received", label: "Đã nhận OTP" },
     { value: "expired", label: "Hết hạn" },
     ...(orders.some((order) => order.status === "unknown")
@@ -91,6 +93,21 @@ export function OrderTable({
         <div className="heading-with-count">
           <h2>{recent ? "Đơn hàng gần đây" : "Tất cả đơn hàng"}</h2>
           <span className="count-badge">{orders.length}</span>
+          {waiting > 0 && (
+            <button
+              className="pending-orders-indicator"
+              aria-label={`${waiting} đơn đang chờ OTP. Xem đơn đang chờ`}
+              onClick={() => {
+                setSearch("");
+                setService("all");
+                setPeriod("all");
+                setFilter("waiting");
+              }}
+            >
+              <BellRing size={13} />
+              <span>{waiting} đang chờ OTP</span>
+            </button>
+          )}
         </div>
         {recent ? (
           <button className="text-button" onClick={onAll}>
@@ -122,12 +139,9 @@ export function OrderTable({
                 onClick={() => setFilter(tab.value)}
               >
                 {tab.label}
-                {tab.value === "waiting" &&
-                  orders.some((o) => o.status === "waiting") && (
-                    <span>
-                      {orders.filter((o) => o.status === "waiting").length}
-                    </span>
-                  )}
+                {tab.value === "waiting" && waiting > 0 && (
+                  <span>{waiting}</span>
+                )}
               </button>
             ))}
           </div>

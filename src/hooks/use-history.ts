@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { mergeHistory } from "@/lib/history";
-import type { DvddAccount, HistoryPage, Order } from "@/lib/types";
+import type { DvddAccount, HistoryPage, Order, OrderCheck } from "@/lib/types";
 
 type CachedPage = { data: HistoryPage; at: number };
 type Snapshot = {
@@ -62,6 +62,24 @@ export function useHistory(
   const current = useRef({ account, scope, onSessionExpired });
   current.current = { account, scope, onSessionExpired };
   const activeScope = account ? scope : "";
+  const [checks, setChecks] = useState<{
+    scope: string;
+    orders: Record<string, OrderCheck>;
+  }>({ scope: "", orders: {} });
+  const recordCheck = useCallback(
+    (requestScope: string, orderCode: string, check: OrderCheck) => {
+      if (requestScope !== current.current.scope || !current.current.account)
+        return;
+      setChecks((previous) => ({
+        scope: requestScope,
+        orders: {
+          ...(previous.scope === requestScope ? previous.orders : {}),
+          [orderCode]: check,
+        },
+      }));
+    },
+    [],
+  );
 
   const sync = useCallback(async (force = true) => {
     const { account, scope } = current.current;
@@ -191,6 +209,7 @@ export function useHistory(
       cache.current = empty;
       setSnapshot(empty);
     }
+    setChecks({ scope: "", orders: {} });
     return () => {
       request.current++;
       controller.current?.abort();
@@ -212,8 +231,13 @@ export function useHistory(
     const transactions = all.flatMap((page) =>
       page.kind === "transactions" ? page.rows : [],
     );
-    return mergeHistory(local, phones, transactions);
-  }, [local, pages]);
+    return mergeHistory(
+      local,
+      phones,
+      transactions,
+      account && checks.scope === scope ? checks.orders : {},
+    );
+  }, [local, pages, account, checks, scope]);
   return {
     records,
     loading: Boolean(account) && (snapshot.scope !== scope || snapshot.loading),
@@ -222,5 +246,6 @@ export function useHistory(
     error: snapshot.scope === scope ? snapshot.error : "",
     syncedAt: snapshot.scope === scope ? snapshot.syncedAt : null,
     refresh: sync,
+    recordCheck,
   };
 }

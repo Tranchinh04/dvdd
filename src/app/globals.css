@@ -885,8 +885,26 @@ input::placeholder {
 }
 .heading-with-count {
   display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
   align-items: center;
   gap: 9px;
+}
+.pending-orders-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid #efdfb9;
+  border-radius: 6px;
+  background: #fff9ed;
+  color: #93651b;
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.pending-orders-indicator:hover {
+  background: #fff2d8;
 }
 .count-badge {
   display: inline-flex;
