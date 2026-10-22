@@ -1,0 +1,7 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+# Netlify automatically supplies the OpenNext adapter for Next.js.
+# Set SESSION_SECRET in Netlify's environment variables, including Functions.
+# Public deployments leave DVDD_API_KEY unset; each visitor connects their own account.

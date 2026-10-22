@@ -183,6 +183,50 @@ test("failed login never reads other pages or returns the upstream body", async 
   expect(profileCalls).toBe(1);
 });
 
+test("supplier HTTP failures identify the failing operation without leaking credentials or retrying login", async () => {
+  const originalWarn = console.warn;
+  const diagnostics: unknown[][] = [];
+  console.warn = (...args) => diagnostics.push(args);
+  try {
+    for (const [status, code] of [
+      [403, "ACCOUNT_ACCESS_DENIED"],
+      [429, "ACCOUNT_RATE_LIMITED"],
+      [503, "ACCOUNT_UNAVAILABLE"],
+    ] as const) {
+      const calls: string[] = [];
+      globalThis.fetch = async (_input, init) => {
+        calls.push(init?.method || "GET");
+        return init?.method === "GET"
+          ? new Response('<input name="emailAddress"><input name="pass">')
+          : new Response("private-upstream-body fixture-password", { status });
+      };
+      let failure: unknown;
+      try {
+        await loginAccount("fixture@example.test", "fixture-password");
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).toMatchObject({ code });
+      expect((failure as Error).message).toContain(`HTTP ${status}`);
+      if (status !== 429)
+        expect((failure as Error).message).toContain("login-submit");
+      expect((failure as Error).message).not.toContain("fixture-password");
+      expect(calls).toEqual(["GET", "POST"]);
+    }
+    expect(diagnostics).toEqual(
+      [403, 429, 503].map((status) => [
+        "[DVDD account] Upstream request failed",
+        { operation: "login-submit", status },
+      ]),
+    );
+    expect(JSON.stringify(diagnostics)).not.toMatch(
+      /fixture-password|fixture@example|private-upstream-body/,
+    );
+  } finally {
+    console.warn = originalWarn;
+  }
+});
+
 test("missing API token requires setup rather than silently creating or replacing a token", async () => {
   const paths: string[] = [];
   globalThis.fetch = async (input) => {

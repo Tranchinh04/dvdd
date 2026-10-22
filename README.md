@@ -121,6 +121,38 @@ npm run build
 npm start
 ```
 
+## Deploy lên Netlify cho nhiều người dùng
+
+Dự án đã có `netlify.toml` và `.nvmrc`. Netlify tự dùng [OpenNext adapter](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/) để chạy các Route Handler đăng nhập, số dư, mua số và OTP. Giữ ứng dụng ở chế độ Next.js có máy chủ; các API và cookie cần máy chủ xử lý.
+
+1. Commit và push mã nguồn mới lên repository GitHub của bạn, gồm cả `netlify.toml`, `.nvmrc` và `package-lock.json`. `.env.local` đã được bỏ qua bởi Git; chỉ `.env.example` là mẫu cấu hình.
+2. Trên Netlify, chọn **Add new project → Import an existing project → GitHub**, rồi chọn repository `Tranchinh04/dvdd` và nhánh muốn deploy.
+3. Kiểm tra cấu hình build:
+
+   | Thiết lập | Giá trị |
+   | --- | --- |
+   | Base directory | Để trống khi `package.json` ở gốc repository |
+   | Build command | `npm run build` |
+   | Publish directory | `.next` |
+   | Node.js | `24`, đã khai báo trong `.nvmrc` |
+
+4. Thêm biến môi trường `SESSION_SECRET` trên Netlify trước khi deploy. Tạo giá trị bằng lệnh dưới đây trên máy của bạn; sao chép chuỗi 64 ký tự sinh ra vào Netlify. Đây là khóa mã hóa cookie của ứng dụng, khác với API token DVDD.
+
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+
+   Biến phải có scope **Functions**; chọn **Builds và Functions**, hoặc **All scopes** nếu giao diện có tùy chọn đó. Đặt cho context Production và các context khác nếu cần xem trước. Giữ nguyên khóa giữa các lần deploy để phiên đăng nhập tiếp tục dùng được. Thay đổi biến môi trường cần deploy lại. Xem [hướng dẫn biến môi trường cho Functions](https://docs.netlify.com/build/functions/environment-variables/).
+
+5. Với website công khai, **để `DVDD_API_KEY` trống hoặc không tạo biến này**. Mỗi người dùng đăng nhập tài khoản DVDD của chính họ, ứng dụng lấy token riêng và dùng số dư tương ứng. Token cấu hình chung trên máy chủ sẽ trở thành token mặc định cho khách chưa kết nối.
+6. Bấm deploy và chờ thành công. Mở URL HTTPS do Netlify cấp; nếu Netlify đang bật bảo vệ truy cập, điều chỉnh quyền để người dùng dự kiến truy cập được.
+
+Sau deploy, mở cửa sổ ẩn danh: trang chưa đăng nhập phải hiện chưa kết nối API; sau đó đăng nhập DVDD và kiểm tra số dư, lịch sử. Tải lại trang để xác nhận phiên vẫn còn, rồi đăng xuất. Nếu lỗi, xem log build hoặc Functions; log chia sẻ để chẩn đoán cần bỏ token, cookie và mật khẩu.
+
+Nếu đăng nhập báo `ACCOUNT_UNAVAILABLE` hoặc `ACCOUNT_ACCESS_DENIED`, ứng dụng đã nhận phản hồi lỗi HTTP từ trang DVDD; cần kiểm tra kết nối từ Functions tới DVDD trước khi thay khóa phiên. Thông báo hiện mã HTTP và bước bị lỗi; log Functions có dòng `[DVDD account] Upstream request failed` chỉ chứa tên bước và mã HTTP. HTTP 403 nghĩa là DVDD từ chối truy cập; HTTP 429 nghĩa là bị giới hạn truy cập. HTTP 5xx có thể do dịch vụ phía DVDD. Chưa thể kết luận chặn IP/vùng chỉ từ lỗi 502 của ứng dụng. Nếu DVDD chặn máy chủ Netlify, cần nhà cung cấp cho phép kết nối hoặc chuyển phần máy chủ sang nơi DVDD cho phép; đổi `SESSION_SECRET` không khắc phục được việc này.
+
+Phiên đăng nhập sử dụng cookie riêng cho từng trình duyệt. Phần lịch sử từ DVDD được tải lại theo tài khoản; đơn lưu cục bộ tại localhost không tự chuyển sang tên miền mới. Việc deploy lên Netlify chưa tạo database lưu toàn bộ số/OTP lâu dài cho ứng dụng.
+
 ## Cấu trúc chính
 
 ```text

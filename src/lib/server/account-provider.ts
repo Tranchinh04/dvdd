@@ -65,6 +65,14 @@ async function document(
   jar: SupplierCookies,
   body?: URLSearchParams,
 ) {
+  // Fixed operation names are safe to log; never log the request body, cookies
+  // or supplier response, which can contain credentials and account data.
+  const operation =
+    path === "/login.php"
+      ? body
+        ? "login-submit"
+        : "login-form"
+      : new URL(path, ORIGIN).searchParams.get("page") || "account";
   let response: Response;
   try {
     response = await fetch(ORIGIN + path, {
@@ -99,12 +107,29 @@ async function document(
     if (body) return "";
     sessionExpired();
   }
-  if (!response.ok)
+  if (!response.ok) {
+    console.warn("[DVDD account] Upstream request failed", {
+      operation,
+      status: response.status,
+    });
+    if (response.status === 403)
+      throw new ApiError(
+        `DVDD từ chối kết nối từ máy chủ ứng dụng (HTTP 403, ${operation}). Cần kiểm tra quyền truy cập máy chủ với DVDD.`,
+        502,
+        "ACCOUNT_ACCESS_DENIED",
+      );
+    if (response.status === 429)
+      throw new ApiError(
+        "DVDD đang giới hạn số lần truy cập (HTTP 429). Vui lòng chờ rồi thử lại.",
+        503,
+        "ACCOUNT_RATE_LIMITED",
+      );
     throw new ApiError(
-      "Trang tài khoản DVDD tạm thời không khả dụng.",
+      `Trang tài khoản DVDD tạm thời không khả dụng (HTTP ${response.status}, ${operation}).`,
       502,
       "ACCOUNT_UNAVAILABLE",
     );
+  }
   if (Number(response.headers.get("content-length")) > MAX_DOCUMENT_BYTES)
     layoutChanged("trang tài khoản");
   const reader = response.body?.getReader();
