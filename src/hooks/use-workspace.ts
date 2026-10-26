@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ClientError, postApi } from "@/lib/client-api";
 import { demoOrders, readOrders } from "@/lib/storage";
 import { useHistory } from "./use-history";
+import { validateRegistration } from "@/lib/registration";
 import {
   Connection,
   AccountResponse,
@@ -13,6 +14,8 @@ import {
   Preferences,
   ServiceId,
   SERVICES,
+  RegistrationInput,
+  RegistrationResponse,
   parseFee,
 } from "@/lib/types";
 
@@ -26,6 +29,8 @@ const EMPTY_CONNECTION: Connection = {
   source: null,
   accountId: null,
 };
+const liveKey = (connection: Connection) =>
+  `dvdd.orders.live.v1.${connection.accountId || "unconfigured"}`;
 
 export function useWorkspace() {
   const [connection, setConnection] = useState<Connection>(EMPTY_CONNECTION);
@@ -51,6 +56,7 @@ export function useWorkspace() {
   const [purchaseError, setPurchaseError] = useState("");
   const [checking, setChecking] = useState<string[]>([]);
   const busyBuying = useRef(false);
+  const busyAuth = useRef(false);
   const inFlight = useRef(new Set<string>());
   const observedOrders = useRef({
     scope: "",
@@ -60,7 +66,7 @@ export function useWorkspace() {
   const scopeRef = useRef("");
   const key = demo
     ? "dvdd.orders.demo.v1"
-    : `dvdd.orders.live.v1.${connection.accountId || "unconfigured"}`;
+    : liveKey(connection);
   scopeRef.current = key;
   const notify = useCallback(
     (message: string, type: Notice["type"] = "success") => {
@@ -72,13 +78,23 @@ export function useWorkspace() {
   const refreshConnection = useCallback(async () => {
     try {
       const response = await fetch("/api/connection", { cache: "no-store" });
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new ClientError(
+          result?.message || "Chưa tải được cấu hình kết nối. Hãy thử khôi phục lại.",
+          result?.code,
+        );
+      }
       const data: Connection = await response.json();
       setConnection(data);
       setConnectionError("");
       return data;
-    } catch {
-      setConnectionError("Chưa tải được cấu hình kết nối. Hãy tải lại trang.");
+    } catch (error) {
+      setConnectionError(
+        error instanceof ClientError
+          ? error.message
+          : "Chưa tải được cấu hình kết nối. Hãy thử khôi phục lại.",
+      );
       return null;
     } finally {
       setConnectionLoaded(true);
@@ -107,7 +123,10 @@ export function useWorkspace() {
       if (scope !== scopeRef.current || requestId !== accountRequest.current)
         return;
       if (!response.ok || result.success === false) {
-        if (result.code === "ACCOUNT_SESSION_EXPIRED") setAccountData(null);
+        if (result.code === "ACCOUNT_SESSION_EXPIRED") {
+          setAccountData(null);
+          setAccountScope(scope);
+        }
         throw new Error(result.message || "Không tải được tài khoản DVDD.");
       }
       const data = result as AccountResponse;
@@ -133,24 +152,27 @@ export function useWorkspace() {
   useEffect(() => {
     accountPage.current = 1;
     setAccountError("");
-    if (connectionLoaded && !demo) void refreshAccount(1);
+    if (connectionLoaded && !connectionError && !demo) void refreshAccount(1);
     return () => {
       accountRequest.current++;
       accountController.current?.abort();
     };
-  }, [connectionLoaded, key, demo, refreshAccount]);
+  }, [connectionLoaded, connectionError, key, demo, refreshAccount]);
 
   const expireAccount = useCallback(() => {
     accountRequest.current++;
     accountController.current?.abort();
     setAccountData(null);
-    setAccountScope("");
+    setAccountScope(scopeRef.current);
     setAccountLoading(false);
     setAccountError(
       "Phiên đăng nhập DVDD đã hết hạn. Đăng nhập lại để tải lịch sử.",
     );
   }, []);
   const account = !demo && accountScope === key ? accountData : null;
+  // An unconfirmed session must not be presented as a logged-out account.
+  const accountRestoring =
+    !demo && (!connectionLoaded || (!account && accountScope !== key));
   const history = useHistory(
     account,
     key,
@@ -253,7 +275,8 @@ export function useWorkspace() {
   }, [Boolean(account), demo, refreshAccount]);
 
   async function login(email: string, password: string) {
-    if (busyBuying.current || accountBusy) return;
+    if (busyBuying.current || busyAuth.current || accountBusy) return;
+    busyAuth.current = true;
     setAccountBusy(true);
     accountController.current?.abort();
     accountRequest.current++;
@@ -266,11 +289,57 @@ export function useWorkspace() {
         throw new Error("DVDD chưa trả đủ thông tin tài khoản.");
       setConnection(result.connection);
       setAccountData(result.data);
-      setAccountScope(`dvdd.orders.live.v1.${result.connection.accountId}`);
+      setAccountScope(liveKey(result.connection));
       setAccountError("");
       setDemo(false);
       notify("Đã đăng nhập DVDD, kết nối API và tải dữ liệu tài khoản.");
     } finally {
+      busyAuth.current = false;
+      setAccountBusy(false);
+      setAccountLoading(false);
+    }
+  }
+
+  async function register(input: RegistrationInput) {
+    if (busyBuying.current || busyAuth.current)
+      throw new ClientError("Đang xử lý một yêu cầu khác. Vui lòng chờ.");
+    const parsed = validateRegistration(input);
+    if (!parsed.data)
+      throw new ClientError(parsed.error, "REGISTRATION_INVALID_INPUT");
+    busyAuth.current = true;
+    setAccountBusy(true);
+    accountController.current?.abort();
+    accountRequest.current++;
+    try {
+      const result = await postApi<RegistrationResponse>(
+        "/api/register",
+        parsed.data,
+      );
+      if (
+        result.verified !== true ||
+        typeof result.connected !== "boolean" ||
+        !result.connection ||
+        (result.connected &&
+          (!result.data ||
+            !result.connection.configured ||
+            !result.connection.accountId ||
+            result.data.profile?.email?.toLowerCase() !==
+              parsed.data.email.toLowerCase())) ||
+        (!result.connected && result.connection.configured)
+      )
+        throw new ClientError(
+          "Chưa xác định được kết quả đăng ký. Hãy thử đăng nhập trước khi đăng ký lại.",
+          "REGISTRATION_OUTCOME_UNKNOWN",
+        );
+      setConnection(result.connection);
+      setAccountData(result.connected ? result.data! : null);
+      setAccountScope(liveKey(result.connection));
+      setAccountError("");
+      setDemo(false);
+      if (result.connected) notify(result.message);
+      return result;
+    } finally {
+      busyAuth.current = false;
       setAccountBusy(false);
       setAccountLoading(false);
     }
@@ -285,7 +354,8 @@ export function useWorkspace() {
     setAccountScope("");
     setAccountError("");
     setAccountLoading(false);
-    await refreshConnection();
+    const next = await refreshConnection();
+    if (next) setAccountScope(liveKey(next));
     notify("Đã đăng xuất phiên DVDD trên trình duyệt này.");
   }
 
@@ -566,7 +636,8 @@ export function useWorkspace() {
     setAccountScope("");
     setAccountError("");
     setAccountLoading(false);
-    await refreshConnection();
+    const next = await refreshConnection();
+    if (next) setAccountScope(liveKey(next));
     setDemo(false);
     notify(
       "Đã lưu API token. DVDD sẽ xác thực tài khoản khi bạn sử dụng dịch vụ.",
@@ -584,6 +655,7 @@ export function useWorkspace() {
     setAccountError("");
     setAccountLoading(false);
     const next = await refreshConnection();
+    if (next) setAccountScope(liveKey(next));
     notify(
       next?.configured
         ? "Đã xóa token của phiên. Ứng dụng đang sử dụng token từ máy chủ."
@@ -630,13 +702,16 @@ export function useWorkspace() {
     connection,
     connectionLoaded,
     connectionError,
+    refreshConnection,
     account,
     accountError: demo ? "" : accountError,
     accountLoading,
+    accountRestoring,
     accountBusy,
     refreshAccount,
     expireAccount,
     login,
+    register,
     logout,
     demo,
     orders,

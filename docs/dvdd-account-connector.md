@@ -26,7 +26,9 @@ Mỗi lần quan sát chỉ bao phủ thời gian sau khi gắn REA, không ch�
 
 ## Lựa chọn triển khai
 
-Ứng dụng dùng API được tài liệu hóa để mua số/lấy OTP và một connector phiên web để đọc tài khoản. Phiên web mã hóa trong cookie HttpOnly, ràng buộc với dấu vân tay token; mật khẩu không được lưu. Không có cơ chế tạo tài khoản hoặc ví tiền riêng của ứng dụng.
+Ứng dụng dùng API được tài liệu hóa để mua số/lấy OTP và một connector phiên web để đọc tài khoản. Phiên web mã hóa trong cookie HttpOnly, ràng buộc với dấu vân tay token; mật khẩu không được lưu. Luồng đăng ký bổ sung gửi biểu mẫu tới DVDD khi người dùng chủ động yêu cầu, không tạo tài khoản hoặc ví tiền riêng của ứng dụng.
+
+Bổ sung kiểm tra HTTP ngày 26/10/2026: `/login.php` có checkbox `remember` (giá trị mặc định khi gửi là `on`, nhãn “Nhớ mật khẩu”), và cookie PHPSESSID có `Max-Age=2592000` cùng Expires tương ứng 30 ngày. Connector gửi trường ghi nhớ nếu biểu mẫu có trường này. Hai cookie của ứng dụng cùng thời hạn 30 ngày và được gia hạn sau khi DVDD chấp nhận yêu cầu đọc; không coi việc đóng tab/trình duyệt là đăng xuất. Tuổi thọ thực tế vẫn phụ thuộc phiên phía DVDD. Đây là quan sát HTTP trực tiếp, không phải bằng chứng REA.
 
 Cấu trúc trang có thể thay đổi. Thiếu số dư được trả `null`; bảng không đọc được được trả `null` kèm cảnh báo; không thay bằng số 0 hoặc lịch sử rỗng. Lỗi đồng bộ tạm thời giữ lần cập nhật trước kèm thông báo, còn hết phiên yêu cầu đăng nhập lại. Có kiểm thử HTML giả lập và kiểm tra trực tiếp chỉ đọc bằng tài khoản được cho phép.
 

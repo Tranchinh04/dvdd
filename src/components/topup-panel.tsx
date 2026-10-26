@@ -18,11 +18,14 @@ import type { useWorkspace } from "@/hooks/use-workspace";
 import type { DvddTopup } from "@/lib/types";
 import { money } from "@/lib/types";
 import { CopyButton } from "./ui";
+import { AccountSessionState } from "./account-session-state";
 
 type Workspace = ReturnType<typeof useWorkspace>;
 type Props = { workspace: Workspace; onAccount: () => void };
 
 export function TopupPanel({ workspace, onAccount }: Props) {
+  if (workspace.accountRestoring)
+    return <AccountSessionState workspace={workspace} />;
   if (workspace.demo || !workspace.account)
     return (
       <section className="panel topup-gate">

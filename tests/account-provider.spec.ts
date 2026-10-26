@@ -113,7 +113,7 @@ test("login forwards the password once, rotates the cookie and imports the exist
     calls.push({ path: url.pathname, method: init?.method || "GET" });
     if (url.pathname === "/login.php" && init?.method === "GET")
       return new Response(
-        '<input name="sessionKey" value="fixture-csrf"><input name="emailAddress"><input name="pass" type="password">',
+        '<input name="sessionKey" value="fixture-csrf"><input name="emailAddress"><input name="pass" type="password"><input type="checkbox" name="remember">',
         { headers: { "Set-Cookie": "PHPSESSID=before-login; Path=/" } },
       );
     if (url.pathname === "/login.php" && init?.method === "POST") {
@@ -121,6 +121,7 @@ test("login forwards the password once, rotates the cookie and imports the exist
       expect(body.get("emailAddress")).toBe("fixture@example.test");
       expect(body.get("pass")).toBe(" fixture-password ");
       expect(body.get("sessionKey")).toBe("fixture-csrf");
+      expect(body.get("remember")).toBe("on");
       expect(body.has("login")).toBe(true);
       expect(new Headers(init.headers).get("cookie")).toBe(
         "PHPSESSID=before-login",

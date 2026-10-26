@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { ACCOUNT_COOKIE, getCredentials } from "@/lib/server/credentials";
 import {
   decodeAccountSession,
-  encodeAccountSession,
+  accountCookieOptions,
+  persistAccountSession,
 } from "@/lib/server/account-session";
 import { readHistoryPage } from "@/lib/server/account-provider";
 import { ApiError, errorResponse, json } from "@/lib/server/http";
@@ -10,14 +11,7 @@ import { ApiError, errorResponse, json } from "@/lib/server/http";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const options = {
-    httpOnly: true,
-    sameSite: "strict" as const,
-    path: "/api",
-    secure:
-      request.nextUrl.protocol === "https:" ||
-      request.headers.get("x-forwarded-proto") === "https",
-  };
+  const options = accountCookieOptions(request, 0);
   try {
     const kind = request.nextUrl.searchParams.get("kind");
     const page = Number(request.nextUrl.searchParams.get("page") || "1");
@@ -41,11 +35,7 @@ export async function GET(request: NextRequest) {
       );
     const data = await readHistoryPage(session.cookies, kind, page);
     const response = json({ success: true, data });
-    response.cookies.set(ACCOUNT_COOKIE, encodeAccountSession(session), {
-      ...options,
-      maxAge: Math.max(1, Math.floor((session.expiresAt - Date.now()) / 1000)),
-    });
-    return response;
+    return persistAccountSession(response, request, session.cookies, token!);
   } catch (error) {
     const response = errorResponse(error);
     if (error instanceof ApiError && error.code === "ACCOUNT_SESSION_EXPIRED")

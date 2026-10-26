@@ -15,6 +15,10 @@ Mở **http://localhost:3000**. Vào **Tài khoản DVDD**, nhập email/mật k
 
 Nếu chỉ có API token, vào **Cấu hình API → Kết nối bằng API token → Lưu kết nối**. Cách này vẫn mua số/lấy OTP được, nhưng ba API DVDD được cung cấp chưa có số dư và lịch sử tài khoản. Lưu token riêng lẻ không xác thực bằng một yêu cầu mua số.
 
+Chưa có tài khoản: chọn tab **Đăng ký** trên màn **Tài khoản DVDD**, nhập họ tên, email, số điện thoại, mật khẩu và nhập lại mật khẩu, rồi bấm **Đăng ký & kết nối**. Thông tin được gửi tới biểu mẫu đăng ký DVDD; ứng dụng xác minh bằng đăng nhập và chỉ kết nối khi email tài khoản khớp. Nếu đã có API token, số dư/lịch sử được tải ngay. Nếu chưa có token, màn hình hướng dẫn tạo token lần đầu tại mục API DVDD rồi quay lại đăng nhập. Không tự tạo hoặc xoay token đang sử dụng.
+
+Mật khẩu đăng ký từ 8–128 ký tự là yêu cầu của giao diện này. Chấp nhận số điện thoại Việt Nam dạng 0xxxxxxxxx hoặc +84…, chuẩn hóa về 10 chữ số. Không lưu mật khẩu vào trình duyệt, cookie hoặc file. Nếu mất phản hồi, kết quả được đánh dấu chưa xác định và có nút chuyển sang đăng nhập bằng email vừa nhập; không tự gửi lại đăng ký.
+
 Bạn có thể chọn **Xem bản demo** để trải nghiệm mà không cần token. Dữ liệu demo được đánh dấu rõ ràng, lưu riêng với dữ liệu thật và không gọi DVDD.
 
 ## Người dùng mới lấy token ở đâu?
@@ -27,7 +31,7 @@ Token được lấy trong mini app của [@dvddBot trên Telegram](https://t.me
 4. Quay lại ứng dụng này → **Tài khoản DVDD → Đăng nhập & kết nối** để tự đọc token và đồng bộ tài khoản. Bạn cũng có thể dán token tại **Cấu hình API** nếu chỉ cần mua số/lấy OTP.
 5. Sau khi đăng nhập tại **Tài khoản DVDD**, vào **Nạp tiền** ngay trong ứng dụng để lấy QR và nội dung chuyển khoản riêng. Ứng dụng này dùng số dư của tài khoản DVDD ứng với token đã nhập.
 
-Email/mật khẩu dùng trong phần **Tài khoản DVDD** chính là tài khoản đăng nhập mini app, không phải tài khoản Telegram. Mật khẩu chỉ được chuyển đến `https://dvdd.casa/login.php` trong lần đăng nhập và không được lưu vào cookie, localStorage hay file. Sau đó ứng dụng giữ phiên DVDD đã mã hóa, tối đa 24 giờ; nếu DVDD hết phiên sớm hơn thì cần đăng nhập lại. `SESSION_SECRET` chỉ cấu hình bởi người vận hành máy chủ.
+Email/mật khẩu dùng trong phần **Tài khoản DVDD** chính là tài khoản đăng nhập mini app, không phải tài khoản Telegram. Mật khẩu chỉ được chuyển đến `https://dvdd.casa/login.php` trong lần đăng nhập và không được lưu vào cookie, localStorage hay file. Ứng dụng gửi tùy chọn ghi nhớ đăng nhập có trên biểu mẫu DVDD, giữ phiên và token bằng hai cookie mã hóa tồn tại tối đa 30 ngày, kể cả khi đóng trình duyệt. Sau một lần đọc tài khoản/lịch sử/nạp tiền được DVDD xác nhận, cả hai cookie được gia hạn cùng nhau. DVDD vẫn có thể hết hoặc thu hồi phiên sớm hơn; khi đó cần đăng nhập lại. `SESSION_SECRET` chỉ cấu hình bởi người vận hành máy chủ.
 
 Nếu tài khoản chưa có API token, ứng dụng hướng dẫn tạo token trong mục API của DVDD rồi đăng nhập lại; không tự tạo hoặc xoay token đang sử dụng.
 
@@ -47,7 +51,7 @@ SESSION_SECRET=chuoi_ngau_nhien_cua_ban
 DVDD_API_KEY=
 ```
 
-- `SESSION_SECRET`: giữ nguyên giữa các lần khởi động và dùng chung giữa các instance để giải mã cookie token. Cookie hết hạn sau 30 ngày. Nếu không đặt, ứng dụng dùng khóa tạm và bạn phải nhập lại token sau khi máy chủ khởi động lại.
+- `SESSION_SECRET`: giữ nguyên giữa các lần khởi động/deploy và dùng chung giữa các instance để giải mã cookie. Bản production trả lỗi `SESSION_CONFIGURATION_REQUIRED` nếu thiếu biến này, trước khi đăng nhập hoặc gửi đăng ký tới DVDD. Chỉ môi trường phát triển được dùng khóa tạm; muốn giữ phiên sau khi khởi động lại localhost cũng phải cấu hình khóa cố định.
 - `DVDD_API_KEY`: tùy chọn cấu hình token trên máy chủ thay vì nhập qua giao diện. Token nhập trong trình duyệt được ưu tiên. Xóa token phiên sẽ quay về token môi trường nếu có.
 - Không đưa token vào biến `NEXT_PUBLIC_*`, URL của ứng dụng, Git hoặc mã phía trình duyệt.
 - Khởi động lại ứng dụng sau khi thay đổi biến môi trường.
@@ -55,6 +59,8 @@ DVDD_API_KEY=
 Đây là công cụ dành cho dùng cá nhân. Nếu đặt `DVDD_API_KEY` trên một máy chủ công khai, những người truy cập máy chủ có thể sử dụng token đó; cần giới hạn truy cập bằng cơ chế đăng nhập hoặc cổng truy cập riêng trước khi triển khai công khai.
 
 ## Tính năng
+
+- Đăng ký tài khoản DVDD ngay trong web; kiểm tra trường nhập, mật khẩu khớp, chống bấm lặp, xử lý email/số điện thoại trùng và xác minh danh tính trước khi kết nối. CAPTCHA hoặc thay đổi biểu mẫu được chuyển sang hướng dẫn đăng ký tại DVDD, không bỏ qua xác minh của nhà cung cấp.
 
 - Giao diện sáng, tiếng Việt, thích ứng với máy tính và điện thoại; menu hỗ trợ bàn phím.
 - Đăng nhập DVDD một lần để tự lấy token hiện có, đọc họ tên/email/điện thoại và số dư thật. Số dư thiếu dữ liệu được hiển thị là chưa xác định, không thay bằng 0.
@@ -87,6 +93,7 @@ Trình duyệt chỉ gọi các Route Handler cùng nguồn. Máy chủ gọi en
 | `POST /api/connection`   | Không gọi DVDD       | `{ "apiKey": "..." }`                    |
 | `DELETE /api/connection` | Không gọi DVDD       | Xóa token của phiên                      |
 | `POST /api/account`     | Đăng nhập web DVDD   | `{ "email": "...", "password": "..." }`; không trả token/mật khẩu |
+| `POST /api/register`    | Đăng ký web DVDD và xác minh đăng nhập | `{ "name": "...", "email": "...", "phone": "...", "password": "...", "confirmPassword": "..." }`; trả trạng thái kết nối hoặc cần thiết lập token, không trả thông tin xác thực |
 | `GET /api/account?page=1` | Đọc tài khoản web DVDD | Số dư, hồ sơ, lịch sử thuê số và trang giao dịch |
 | `GET /api/history?kind=transactions&page=1` | Đọc lịch sử web DVDD | Một trang giao dịch; `kind=phones` đọc bảng thuê số. Cần phiên đăng nhập cùng API token |
 | `GET /api/topup` | Đọc trang nạp web DVDD | QR PNG và thông tin chuyển khoản đã đối chiếu, ràng buộc với tài khoản đang đăng nhập; không chuyển tiền |
@@ -97,7 +104,7 @@ Trình duyệt chỉ gọi các Route Handler cùng nguồn. Máy chủ gọi en
 
 Các yêu cầu ghi cần header `Origin` trùng host ứng dụng và nội dung JSON. Trình duyệt tự gửi header này. Thời gian chờ DVDD là 20 giây. Nút xác nhận bị khóa khi đang mua; ứng dụng không tự gửi lại yêu cầu mua bị lỗi mạng. Nếu phản hồi mua bị mất, hãy kiểm tra tài khoản DVDD trước khi mua lại; nếu có mã đơn, dùng **Thêm mã đơn** để tiếp tục theo dõi. API DVDD chưa cung cấp khóa chống trùng giao dịch hoặc cách truy vấn giao dịch mua bị mất phản hồi.
 
-Ba API được cung cấp chưa có số dư/danh sách đơn. Phần tài khoản dùng phiên đăng nhập để đọc các trang có sẵn của `dvdd.casa`, không phải API tài khoản chính thức. Nếu nhà cung cấp thay đổi đăng nhập/cấu trúc trang, phần đồng bộ có thể cần cập nhật. Connector chỉ đọc hồ sơ, API token hiện có, bảng thuê số của chủ tài khoản và giao dịch; không lấy bảng hoạt động công khai của người khác, không chạy script biểu mẫu mua/hủy/hoàn tiền.
+Ba API được cung cấp chưa có số dư/danh sách đơn. Phần tài khoản dùng phiên đăng nhập để đọc các trang có sẵn của `dvdd.casa`, không phải API tài khoản chính thức. Nếu nhà cung cấp thay đổi đăng nhập/cấu trúc trang, phần đồng bộ có thể cần cập nhật. Connector đọc hồ sơ, API token hiện có, bảng thuê số của chủ tài khoản, trang nạp tiền và giao dịch; chỉ gửi biểu mẫu đăng ký khi người dùng chủ động bấm đăng ký. Không lấy bảng hoạt động công khai của người khác hoặc chạy script biểu mẫu mua/hủy/hoàn tiền.
 
 Lịch sử DVDD hiển thị đúng phạm vi nhà cung cấp còn cung cấp. Ứng dụng tải các trang được quảng bá trong phân trang, tối đa hai yêu cầu cùng lúc, hiện tiến độ và giữ dữ liệu đã tải nếu có trang lỗi. Bảng thuê số có thể chỉ còn các đơn gần đây; các mô tả `Trừ ví đơn hàng … phí thuê số [VNMB]` giúp khôi phục thêm đơn cũ. Chỉ mô tả thuê số đã xác minh mới được tính là đơn; không tính nạp tiền hay mua tài khoản. Khoản `Hoàn ví không nhận được OTP …` được ghép theo mã đơn và trừ khỏi phí đã ghi nhận. Không tự gán trạng thái thành công cho đơn chỉ còn giao dịch. Tổng phí là của các đơn đã tải, không phải toàn bộ biến động ví.
 

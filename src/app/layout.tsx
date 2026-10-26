@@ -8,6 +8,7 @@ import "@/styles/dashboard.css";
 import "@/styles/account.css";
 import "@/styles/topup.css";
 import "@/styles/responsive.css";
+import "@/styles/auth.css";
 
 export const metadata: Metadata = {
   title: "DVDD Workspace — Mua số & nhận OTP",

@@ -6,13 +6,14 @@ import type {
   DvddProfile,
   DvddTransaction,
   HistoryPage,
+  RegistrationInput,
 } from "../types";
 import { parseFee } from "../types";
 import { ApiError } from "./http";
 import { topupDetails } from "./topup";
 
-// This connector reads the authenticated supplier website. It does not call
-// undocumented worker functions or execute the website's scripts/forms.
+// Fixed supplier web routes are used for authentication, explicit registration
+// and account reads. Never execute supplier scripts or guessing worker functions.
 const ORIGIN = "https://dvdd.casa";
 const MAX_DOCUMENT_BYTES = 2_000_000;
 const AGENT = "DVDD-Workspace/1.0";
@@ -65,6 +66,7 @@ async function document(
   path: string,
   jar: SupplierCookies,
   body?: URLSearchParams,
+  signal?: AbortSignal,
 ) {
   // Fixed operation names are safe to log; never log the request body, cookies
   // or supplier response, which can contain credentials and account data.
@@ -73,7 +75,11 @@ async function document(
       ? body
         ? "login-submit"
         : "login-form"
-      : new URL(path, ORIGIN).searchParams.get("page") || "account";
+      : path === "/register.php"
+        ? body
+          ? "register-submit"
+          : "register-form"
+        : new URL(path, ORIGIN).searchParams.get("page") || "account";
   let response: Response;
   try {
     response = await fetch(ORIGIN + path, {
@@ -86,14 +92,16 @@ async function document(
           ? {
               "Content-Type": "application/x-www-form-urlencoded",
               Origin: ORIGIN,
-              Referer: ORIGIN + "/login.php",
+              Referer: ORIGIN + path,
             }
           : {}),
       },
       body: body?.toString(),
       redirect: "manual",
       cache: "no-store",
-      signal: AbortSignal.timeout(15_000),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(15_000)])
+        : AbortSignal.timeout(15_000),
     });
   } catch {
     throw new ApiError(
@@ -321,17 +329,28 @@ export async function readHistoryPage(
 export async function readAccount(
   jar: SupplierCookies,
   page = 1,
+  signal?: AbortSignal,
 ): Promise<DvddAccount> {
   const [profileResult, ordersResult, transactionsResult] =
     await Promise.allSettled([
-      document("/dashboard?page=admin-profile-form", jar).then(parseProfile),
-      document("/dashboard?page=order-phone", jar).then((html) => ({
-        rows: parsePhoneHistory(html),
-        pages: historyPages(html, "order-phone"),
-      })),
-      document(`/dashboard?page=transactions&paging=${page}`, jar).then(
-        parseTransactions,
+      document(
+        "/dashboard?page=admin-profile-form",
+        jar,
+        undefined,
+        signal,
+      ).then(parseProfile),
+      document("/dashboard?page=order-phone", jar, undefined, signal).then(
+        (html) => ({
+          rows: parsePhoneHistory(html),
+          pages: historyPages(html, "order-phone"),
+        }),
       ),
+      document(
+        `/dashboard?page=transactions&paging=${page}`,
+        jar,
+        undefined,
+        signal,
+      ).then(parseTransactions),
     ]);
   if (profileResult.status === "rejected") throw profileResult.reason;
   const warnings: string[] = [];
@@ -367,9 +386,13 @@ export async function readTopup(jar: SupplierCookies) {
   return topupDetails(await document("/dashboard?page=transactions-add", jar));
 }
 
-export async function loginAccount(email: string, password: string) {
+async function authenticateAccount(
+  email: string,
+  password: string,
+  signal?: AbortSignal,
+) {
   const jar: SupplierCookies = {};
-  const loginHtml = await document("/login.php", jar);
+  const loginHtml = await document("/login.php", jar, undefined, signal);
   const $ = load(loginHtml);
   if (
     !$('input[name="emailAddress"]').length ||
@@ -384,11 +407,22 @@ export async function loginAccount(email: string, password: string) {
     pass: password,
     login: "",
   });
-  await document("/login.php", jar, body);
+  const remember = $('input[type="checkbox"][name="remember"]').first();
+  if (remember.length) body.set("remember", String(remember.val() || "on"));
+  try {
+    await document("/login.php", jar, body, signal);
+  } finally {
+    body.set("pass", "");
+  }
   let profile: DvddProfile;
   try {
     profile = parseProfile(
-      await document("/dashboard?page=admin-profile-form", jar),
+      await document(
+        "/dashboard?page=admin-profile-form",
+        jar,
+        undefined,
+        signal,
+      ),
     );
   } catch (error) {
     if (error instanceof ApiError && error.code === "ACCOUNT_SESSION_EXPIRED")
@@ -405,7 +439,11 @@ export async function loginAccount(email: string, password: string) {
       502,
       "ACCOUNT_IDENTITY_MISMATCH",
     );
-  const apiHtml = await document("/dashboard?page=api", jar);
+  return { jar, profile };
+}
+
+async function connectAccount(jar: SupplierCookies, signal?: AbortSignal) {
+  const apiHtml = await document("/dashboard?page=api", jar, undefined, signal);
   const apiKey = String(
     load(apiHtml)('input[name="token"]#token').val() || "",
   ).trim();
@@ -415,6 +453,163 @@ export async function loginAccount(email: string, password: string) {
       422,
       "ACCOUNT_TOKEN_MISSING",
     );
-  const data = await readAccount(jar);
+  const data = await readAccount(jar, 1, signal);
   return { jar, apiKey, data };
+}
+
+export async function loginAccount(email: string, password: string) {
+  const { jar } = await authenticateAccount(email, password);
+  return connectAccount(jar);
+}
+
+export function registrationForm(html: string) {
+  const $ = load(html);
+  const forms = $("form")
+    .toArray()
+    .filter((node) =>
+      ["name", "emailAddress", "phone", "pass", "repass"].every(
+        (name) => $(node).find(`input[name="${name}"]`).length === 1,
+      ),
+    );
+  if (forms.length !== 1) layoutChanged("biểu mẫu đăng ký");
+  const form = $(forms[0]);
+  const action = new URL(
+    form.attr("action") || "/register.php",
+    ORIGIN + "/register.php",
+  );
+  if (
+    action.origin !== ORIGIN ||
+    action.pathname !== "/register.php" ||
+    action.search ||
+    form.attr("method")?.toLowerCase() !== "post"
+  )
+    layoutChanged("biểu mẫu đăng ký");
+  if (
+    $(
+      '.g-recaptcha,.h-captcha,.cf-turnstile, [name*="captcha"],iframe[src*="captcha"],script[src*="recaptcha"],script[src*="turnstile"]',
+    ).length
+  )
+    throw new ApiError(
+      "DVDD đang yêu cầu xác minh thêm. Hãy hoàn tất đăng ký trên trang DVDD rồi quay lại đăng nhập.",
+      422,
+      "REGISTRATION_EXTERNAL_REQUIRED",
+    );
+  const body = new URLSearchParams();
+  for (const field of form.find('input[type="hidden"]').toArray()) {
+    const name = $(field).attr("name") || "";
+    const value = String($(field).val() || "");
+    if (
+      !["register", "initData", "sessionKey"].includes(name) ||
+      value.length > 512 ||
+      (name === "initData" && value)
+    )
+      layoutChanged("biểu mẫu đăng ký");
+    body.set(name, value);
+  }
+  if (body.get("register") !== "1") layoutChanged("biểu mẫu đăng ký");
+  body.set("initData", "");
+  return body;
+}
+
+function registrationRejected(html: string) {
+  const $ = load(html);
+  $("script,style,input,textarea").remove();
+  const alerts = $(
+    '.alert-danger,.alert-error,[role="alert"],.error,.invalid-feedback',
+  )
+    .not(".alert-success,.success")
+    .toArray()
+    .map((node) => $(node).text().replace(/\s+/g, " ").trim())
+    .filter(
+      (line) => line && !/(?:đăng ký|tạo tài khoản)\s+thành công/i.test(line),
+    );
+  const plain = $("body")
+    .text()
+    .replace(/\s+/g, " ")
+    .replace(/[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+/g, "email");
+  if (
+    !/(?:đăng ký|tạo tài khoản)\s+thành công/i.test(plain) &&
+    /email[^.!\n]{0,100}(?:đã[^.!\n]{0,30}(?:tồn tại|sử dụng|đăng ký)|already[^.!\n]{0,30}(?:exist|use|register))/i.test(
+      plain,
+    )
+  )
+    throw new ApiError(
+      "Email này đã được đăng ký tại DVDD. Hãy chuyển sang đăng nhập.",
+      409,
+      "REGISTRATION_EMAIL_EXISTS",
+    );
+  if (
+    /(?:số điện thoại|phone)[^.!\n]{0,80}(?:đã[^.!\n]{0,30}(?:tồn tại|sử dụng|đăng ký)|already)/i.test(
+      plain,
+    )
+  )
+    throw new ApiError(
+      "Số điện thoại này đã được đăng ký tại DVDD.",
+      409,
+      "REGISTRATION_PHONE_EXISTS",
+    );
+  if (alerts.length)
+    throw new ApiError(
+      "DVDD chưa chấp nhận đăng ký. Kiểm tra thông tin hoặc hoàn tất đăng ký tại DVDD.",
+      422,
+      "REGISTRATION_REJECTED",
+    );
+}
+
+export async function registerAccount(input: RegistrationInput) {
+  const signal = AbortSignal.timeout(45_000);
+  const jar: SupplierCookies = {};
+  const body = registrationForm(
+    await document("/register.php", jar, undefined, signal),
+  );
+  body.set("name", input.name);
+  body.set("emailAddress", input.email);
+  body.set("phone", input.phone);
+  body.set("pass", input.password);
+  body.set("repass", input.confirmPassword);
+  let result: string;
+  try {
+    // A registration POST may have succeeded even if its response is lost.
+    // Send it exactly once and never retry it automatically.
+    result = await document("/register.php", jar, body, signal);
+  } catch {
+    throw registrationUnknown();
+  } finally {
+    for (const name of ["pass", "repass"]) body.set(name, "");
+  }
+  registrationRejected(result);
+  let verified: Awaited<ReturnType<typeof authenticateAccount>>;
+  try {
+    verified = await authenticateAccount(input.email, input.password, signal);
+  } catch {
+    throw registrationUnknown();
+  }
+  try {
+    const connected = await connectAccount(verified.jar, signal);
+    return {
+      connected: true as const,
+      requiresToken: false,
+      message:
+        "Tài khoản DVDD đã được xác minh và kết nối. Bạn có thể nạp tiền để bắt đầu sử dụng.",
+      ...connected,
+    };
+  } catch (error) {
+    return {
+      connected: false as const,
+      requiresToken:
+        error instanceof ApiError && error.code === "ACCOUNT_TOKEN_MISSING",
+      message:
+        error instanceof ApiError && error.code === "ACCOUNT_TOKEN_MISSING"
+          ? "Tài khoản DVDD đã được xác minh. Bạn cần tạo API token lần đầu tại mục API của DVDD, rồi quay lại đăng nhập để kết nối."
+          : "Tài khoản DVDD đã được xác minh nhưng chưa đồng bộ được dữ liệu. Hãy thử đăng nhập để hoàn tất kết nối.",
+    };
+  }
+}
+
+function registrationUnknown() {
+  return new ApiError(
+    "Chưa xác định được kết quả đăng ký. Hãy thử đăng nhập bằng email vừa nhập trước khi đăng ký lại.",
+    502,
+    "REGISTRATION_OUTCOME_UNKNOWN",
+  );
 }

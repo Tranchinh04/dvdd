@@ -16,7 +16,11 @@ import {
 export const runtime = "nodejs";
 
 export async function GET() {
-  return json((await getCredentials()).connection);
+  try {
+    return json((await getCredentials()).connection);
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 
 export async function POST(request: NextRequest) {

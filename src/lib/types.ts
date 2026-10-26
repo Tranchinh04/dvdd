@@ -73,6 +73,24 @@ export type DvddAccount = {
   warnings: string[];
 };
 
+export type RegistrationInput = {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirmPassword: string;
+};
+
+export type RegistrationResponse = {
+  success: true;
+  verified: true;
+  connected: boolean;
+  requiresToken: boolean;
+  message: string;
+  connection: Connection;
+  data?: DvddAccount;
+};
+
 export type HistoryStatus = OrderStatus | "unknown";
 
 export type OrderCheck = {

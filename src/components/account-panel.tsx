@@ -5,22 +5,18 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleAlert,
-  ExternalLink,
-  Eye,
-  EyeOff,
-  LoaderCircle,
   LogIn,
   LogOut,
-  Mail,
   RefreshCw,
-  ShieldCheck,
   UserRound,
   Wallet,
 } from "lucide-react";
 import { useState } from "react";
 import type { useWorkspace } from "@/hooks/use-workspace";
-import { DVDD_WEB_URL, displayPhone, money } from "@/lib/types";
+import { displayPhone, money } from "@/lib/types";
 import { CopyButton } from "./ui";
+import { AccountAuth } from "./account-auth";
+import { AccountSessionState } from "./account-session-state";
 
 type Workspace = ReturnType<typeof useWorkspace>;
 
@@ -83,6 +79,8 @@ export function AccountStrip({
 }) {
   const { account, accountError, accountLoading } = workspace;
   if (workspace.demo) return null;
+  if (workspace.accountRestoring)
+    return <AccountSessionState workspace={workspace} />;
   return (
     <section
       className={`panel account-strip ${account ? "signed-in" : ""}`}
@@ -101,7 +99,7 @@ export function AccountStrip({
           <p>
             {account
               ? account.profile.email
-              : "Đăng nhập DVDD để xem số dư, mua số và quản lý lịch sử."}
+              : "Đăng nhập hoặc tạo tài khoản DVDD để mua số và quản lý lịch sử."}
           </p>
         </div>
       </div>
@@ -115,7 +113,9 @@ export function AccountStrip({
         {account && <RefreshButton workspace={workspace} />}
         <button
           className={`button small ${account ? "ghost" : "primary"}`}
-          aria-label={account ? "Xem tài khoản DVDD" : "Đăng nhập DVDD"}
+          aria-label={
+            account ? "Xem tài khoản DVDD" : "Đăng nhập hoặc đăng ký DVDD"
+          }
           disabled={workspace.accountBusy}
           onClick={onOpen}
         >
@@ -124,7 +124,7 @@ export function AccountStrip({
               ? "Xem tài khoản"
               : accountLoading
                 ? "Đang tải tài khoản..."
-                : "Đăng nhập DVDD"}
+                : "Đăng nhập / Đăng ký"}
           </span>
           {account && <span className="mobile-button-label">Chi tiết</span>}
           <ArrowRight size={14} />
@@ -146,9 +146,6 @@ export function AccountPanel({
   workspace: Workspace;
   onTopup: () => void;
 }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [visible, setVisible] = useState(false);
   const [error, setError] = useState("");
   const [leaving, setLeaving] = useState(false);
   const [tab, setTab] = useState<"orders" | "transactions">("orders");
@@ -159,134 +156,9 @@ export function AccountPanel({
       .join(" ")
       .toLocaleLowerCase("vi")
       .includes(query.trim().toLocaleLowerCase("vi"));
-  if (!account)
-    return (
-      <section className="panel account-login">
-        <div className="panel-heading">
-          <div className="settings-title">
-            <span className="settings-icon">
-              <UserRound size={21} />
-            </span>
-            <div>
-              <h2>Đăng nhập tài khoản DVDD</h2>
-              <p>Dùng tài khoản bạn đã đăng ký trong mini app @dvddBot.</p>
-            </div>
-          </div>
-        </div>
-        <form
-          onSubmit={async (event) => {
-            event.preventDefault();
-            setError("");
-            try {
-              await workspace.login(email, password);
-            } catch (err) {
-              setError(
-                err instanceof Error
-                  ? err.message
-                  : "Chưa đăng nhập được DVDD.",
-              );
-            } finally {
-              setPassword("");
-            }
-          }}
-        >
-          <div className="account-login-intro">
-            <ShieldCheck size={18} />
-            <p>Mật khẩu chỉ dùng để đăng nhập DVDD, không được lưu lại.</p>
-          </div>
-          {workspace.accountError && (
-            <p className="inline-error" role="alert">
-              <CircleAlert size={15} />
-              {workspace.accountError}
-            </p>
-          )}
-          <div className="account-fields">
-            <div>
-              <label className="field-label" htmlFor="dvdd-email">
-                Email DVDD <span>*</span>
-              </label>
-              <div className="token-input">
-                <Mail size={17} />
-                <input
-                  id="dvdd-email"
-                  type="email"
-                  autoComplete="username"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email đăng nhập DVDD"
-                  maxLength={254}
-                  required
-                  disabled={accountBusy}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="field-label" htmlFor="dvdd-password">
-                Mật khẩu DVDD <span>*</span>
-              </label>
-              <div className="token-input">
-                <ShieldCheck size={17} />
-                <input
-                  id="dvdd-password"
-                  type={visible ? "text" : "password"}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mật khẩu tài khoản DVDD"
-                  maxLength={512}
-                  required
-                  disabled={accountBusy}
-                />
-                <button
-                  className="icon-button"
-                  type="button"
-                  aria-label={
-                    visible ? "Ẩn mật khẩu DVDD" : "Hiện mật khẩu DVDD"
-                  }
-                  onClick={() => setVisible(!visible)}
-                >
-                  {visible ? <EyeOff size={17} /> : <Eye size={17} />}
-                </button>
-              </div>
-            </div>
-          </div>
-          {error && (
-            <p className="inline-error" role="alert">
-              <CircleAlert size={15} />
-              {error}
-            </p>
-          )}
-          <div className="settings-form-actions">
-            <button
-              className="button primary"
-              type="submit"
-              disabled={accountBusy || buying || !email.trim() || !password}
-            >
-              {accountBusy ? (
-                <LoaderCircle size={16} className="spin" />
-              ) : (
-                <LogIn size={16} />
-              )}
-              {accountBusy
-                ? "Đang đăng nhập & đồng bộ..."
-                : "Đăng nhập & kết nối"}
-            </button>
-            <a
-              href={`${DVDD_WEB_URL}/register.php`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-button"
-            >
-              Đăng ký tài khoản tại DVDD <ExternalLink size={13} />
-            </a>
-          </div>
-          <p className="field-hint">
-            Đăng nhập không phát sinh phí. Nếu chỉ có API token, bạn có thể sử
-            dụng mục Cấu hình API.
-          </p>
-        </form>
-      </section>
-    );
+  if (workspace.accountRestoring)
+    return <AccountSessionState workspace={workspace} />;
+  if (!account) return <AccountAuth workspace={workspace} />;
 
   const orders = account.orders?.filter((row) =>
     match([row.orderCode, row.phone, row.result, row.service, row.status]),
