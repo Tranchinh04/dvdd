@@ -1,6 +1,21 @@
 # Triển khai OtpFlash trên Render Free
 
-Render có thể chạy toàn bộ Next.js hiện tại, gồm giao diện và các `/api/*`. Không cần thuê VPS hoặc tạo database để chạy luồng hiện có. Cấu hình ở `render.yaml` chỉ tạo **một Web Service, plan Free**, tại Singapore. Chưa có dịch vụ Render nào được triển khai từ bộ cấu hình này.
+Production: https://otpflash.onrender.com/
+
+Render có thể chạy toàn bộ Next.js hiện tại, gồm giao diện và các `/api/*`. Không cần thuê VPS hoặc tạo database để chạy luồng hiện có. Cấu hình ở `render.yaml` chỉ tạo **một Web Service, plan Free**, tại Singapore.
+
+## Kết quả triển khai ngày 26/10/2026
+
+Đã triển khai bằng Render CLI/API vào `My Workspace`, cấu hình khớp Blueprint. Dịch vụ `otpflash` dùng **Free**, Node.js 24, Singapore, nguồn ứng dụng tại commit `f5351d4`. `SESSION_SECRET` được sinh và lưu riêng trong Environment của dịch vụ; không cấu hình API key DVDD dùng chung. Render xác nhận deployment **Live**; không thêm database, disk hoặc compute trả phí.
+
+- Build và TypeScript trên Render thành công. Blueprint cũng đã được Render xác nhận hợp lệ, chỉ có một hành động tạo `otpflash`.
+- Truy cập công khai `/` trả HTTP 200, đúng tiêu đề OtpFlash. `/api/connection` trả chưa cấu hình; `/api/account` trả chưa kết nối khi không có cookie.
+- Kiểm tra runtime cho thấy `GET /login.php` và `GET /register.php` của DVDD đều trả **HTTP 403 / ACCESS_DENIED**. Worker `getOtp` với key thử không hợp lệ vẫn trả HTTP 200 và JSON lỗi hợp lệ.
+- Đã thử đăng nhập qua giao diện production bằng tài khoản được phép: ứng dụng trả HTTP 502, mã `ACCOUNT_ACCESS_DENIED`, thông báo HTTP 403 ở bước `login-form`, trước khi gửi mật khẩu tới DVDD. Giao diện hiển thị lỗi, xóa mật khẩu khỏi ô nhập và không báo kết nối thành công.
+- Vì vậy chưa xác minh được số dư, lịch sử DVDD, QR nạp tiền hoặc khôi phục phiên tài khoản thật trên Render. Không chuyển API của Vercel sang Render khi phần tài khoản vẫn bị từ chối.
+- Chế độ API token đã được kiểm tra trên giao diện bằng key thử không hợp lệ: cookie HttpOnly/Secure tồn tại 30 ngày, vẫn đọc được sau khi đóng/mở Chromium, xóa token xóa cookie. `/api/otp` gọi được worker và trả HTTP 422 `PROVIDER_ERROR` đúng cho key thử, không bị HTTP 403.
+- Luồng mua demo thành công, không gọi API mua số thật. Chuyển năm màn không tải lại document; menu điện thoại hoạt động, không tràn ngang ở 320/390/768/1024/1440 px, không có lỗi JavaScript trong lần kiểm tra này.
+- Không tạo tài khoản thật, mua số hoặc chuyển tiền trong kiểm tra. Không lưu mật khẩu, token thật hoặc dữ liệu ngân hàng vào báo cáo.
 
 ## Tạo dịch vụ
 

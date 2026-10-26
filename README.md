@@ -1,6 +1,8 @@
 # OtpFlash
 
-Bản production: [otpflash.vercel.app](https://otpflash.vercel.app/).
+Bản Render Free: [otpflash.onrender.com](https://otpflash.onrender.com/).
+
+Trên bản online, DVDD hiện từ chối phần đăng nhập/đăng ký bằng HTTP 403. Dùng **Cấu hình API → API token** để kết nối API mua số/lấy OTP; chưa thể đồng bộ số dư, lịch sử tài khoản hoặc QR nạp tiền từ DVDD. Xem [kết quả kiểm tra Render](docs/render-deployment.md).
 
 Ứng dụng Next.js bằng tiếng Việt để đăng nhập DVDD, xem số dư và lịch sử tài khoản, mua số điện thoại thường hoặc Vietnamobile và nhận OTP.
 
