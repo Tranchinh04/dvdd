@@ -64,7 +64,9 @@ async function prepare(page: Page) {
         success: true,
         data: {
           kind: new URL(r.request().url()).searchParams.get("kind"),
-          rows: [],
+          rows: new URL(r.request().url()).searchParams.get("kind") === "phones"
+            ? account.orders
+            : account.transactions,
           page: 1,
           pages: 1,
         },

@@ -1,6 +1,8 @@
-# DVDD Workspace
+# OtpFlash
 
 Ứng dụng Next.js bằng tiếng Việt để đăng nhập DVDD, xem số dư và lịch sử tài khoản, mua số điện thoại thường hoặc Vietnamobile và nhận OTP.
+
+Dữ liệu tự đồng bộ khi chuyển màn, quay lại tab trình duyệt, có mạng trở lại và mỗi 60 giây khi tab đang hiển thị. Tài khoản và các trang lịch sử được làm mới cùng nhau; giữ dữ liệu đang hiển thị trong lúc chờ, không cần F5. Các sự kiện quay lại tab liên tiếp dùng chung một lượt đồng bộ; chế độ demo không gọi dữ liệu thật.
 
 ## Chạy ứng dụng
 
@@ -133,6 +135,17 @@ Chạy production:
 npm run build
 npm start
 ```
+
+## Deploy lên Vercel cho nhiều người dùng
+
+Vercel chạy trực tiếp Next.js và các Route Handler trong dự án. Tên ứng dụng là **OtpFlash**, tên project dùng `otpflash` nếu khả dụng trong tài khoản. Không xuất HTML tĩnh vì đăng nhập, số dư, nạp tiền và OTP cần máy chủ.
+
+1. Đăng nhập Vercel CLI và liên kết project: `vercel login`, rồi `vercel link --yes --project otpflash`.
+2. Đặt `SESSION_SECRET` thành Secret cho môi trường Production; giữ nguyên giá trị giữa các lần deploy. Không cấu hình `DVDD_API_KEY` trên project công khai để mỗi người dùng kết nối tài khoản riêng.
+3. Chạy `vercel deploy --prod --yes`. Vercel tự nhận framework Next.js và chạy `npm run build`.
+4. Kiểm tra domain production mở được khi không đăng nhập Vercel, đăng nhập DVDD và quay lại tab để xác nhận dữ liệu tự đồng bộ.
+
+`.vercelignore` loại `.env*`, dữ liệu kiểm thử, thư mục Netlify, node_modules và build cục bộ khỏi phần source upload. `.vercel/` chứa cấu hình liên kết riêng trên máy và đã được bỏ qua bởi Git. Môi trường Preview cần SESSION_SECRET riêng nếu dùng preview. Luồng đăng nhập/đăng ký khai báo giới hạn thực thi 60 giây.
 
 ## Deploy lên Netlify cho nhiều người dùng
 

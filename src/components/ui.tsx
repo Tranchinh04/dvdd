@@ -9,12 +9,12 @@ export function LogoMark({ small = false }: { small?: boolean }) {
     <span className={`logo-mark ${small ? "small" : ""}`} aria-hidden="true">
       <svg viewBox="0 0 36 36" fill="none">
         <path
-          d="M11 8v15a6.5 6.5 0 0 0 13 0V14M11 17h13"
+          d="M20.5 5.5 9 20h9l-2.5 10.5L28 15h-9l1.5-9.5Z"
+          fill="currentColor"
           stroke="currentColor"
-          strokeWidth="3.4"
-          strokeLinecap="round"
+          strokeWidth="1.4"
+          strokeLinejoin="round"
         />
-        <circle cx="26" cy="8.5" r="2.5" fill="currentColor" opacity=".6" />
       </svg>
     </span>
   );

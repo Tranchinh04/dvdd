@@ -292,12 +292,12 @@ input::placeholder {
   height: 28px;
 }
 .brand > span:last-child {
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1.1;
   font-weight: 700;
-  letter-spacing: -1.5px;
+  letter-spacing: -1.1px;
 }
-.brand-dot {
+.brand-accent {
   color: var(--primary);
 }
 .brand small {

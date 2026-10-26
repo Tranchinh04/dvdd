@@ -108,6 +108,7 @@ export function Workspace() {
     (order) => order.status === "waiting",
   ).length;
   const navigate = (next: View) => {
+    if (next !== view) void workspace.refreshData();
     setView(next);
     setMobileOpen(false);
     mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
@@ -207,11 +208,11 @@ export function Workspace() {
           <button
             className="brand"
             onClick={() => navigate("buy")}
-            aria-label="DVDD — Trang mua số"
+            aria-label="OtpFlash — Trang mua số"
           >
             <LogoMark />
             <span>
-              dvdd<span className="brand-dot">.</span>
+              Otp<span className="brand-accent">Flash</span>
               <small>SỐ ĐIỆN THOẠI & OTP</small>
             </span>
           </button>
@@ -610,7 +611,7 @@ export function Workspace() {
                 onCopyError={copyError}
                 ready={
                   workspace.ready &&
-                  !workspace.accountLoading &&
+                  (Boolean(workspace.account) || !workspace.accountLoading) &&
                   (!workspace.history.loading || historyOrders.length > 0)
                 }
               />
@@ -678,7 +679,7 @@ export function Workspace() {
                 onCopyError={copyError}
                 ready={
                   workspace.ready &&
-                  !workspace.accountLoading &&
+                  (Boolean(workspace.account) || !workspace.accountLoading) &&
                   (!workspace.history.loading || historyOrders.length > 0)
                 }
               />
@@ -711,7 +712,7 @@ export function Workspace() {
 
           <footer className="app-footer">
             <span>
-              © {new Date().getFullYear()} DVDD Workspace
+              © {new Date().getFullYear()} OtpFlash
               <span className="footer-dot">·</span>Quản lý số điện thoại & OTP
             </span>
             <button onClick={() => setDialog("help")}>

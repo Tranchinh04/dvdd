@@ -42,6 +42,7 @@ export function useWorkspace() {
   const [accountLoading, setAccountLoading] = useState(false);
   const [accountBusy, setAccountBusy] = useState(false);
   const accountRequest = useRef(0);
+  const connectionRequest = useRef(0);
   const accountPage = useRef(1);
   const accountController = useRef<AbortController | null>(null);
   const [demo, setDemo] = useState(false);
@@ -76,6 +77,7 @@ export function useWorkspace() {
   );
 
   const refreshConnection = useCallback(async () => {
+    const requestId = ++connectionRequest.current;
     try {
       const response = await fetch("/api/connection", { cache: "no-store" });
       if (!response.ok) {
@@ -86,10 +88,12 @@ export function useWorkspace() {
         );
       }
       const data: Connection = await response.json();
+      if (requestId !== connectionRequest.current) return null;
       setConnection(data);
       setConnectionError("");
       return data;
     } catch (error) {
+      if (requestId !== connectionRequest.current) return null;
       setConnectionError(
         error instanceof ClientError
           ? error.message
@@ -97,7 +101,7 @@ export function useWorkspace() {
       );
       return null;
     } finally {
-      setConnectionLoaded(true);
+      if (requestId === connectionRequest.current) setConnectionLoaded(true);
     }
   }, []);
 
@@ -134,6 +138,7 @@ export function useWorkspace() {
       setAccountScope(scope);
       setAccountError("");
       accountPage.current = data.data?.transactionPage || 1;
+      return data.connected && data.data ? data.data : null;
     } catch (error) {
       if (scope !== scopeRef.current || requestId !== accountRequest.current)
         return;
@@ -266,17 +271,62 @@ export function useWorkspace() {
     });
   }, [account, history.records, storageReady, key]);
 
+  const revalidationState = useRef({ connectionLoaded, demo, accountLoading });
+  revalidationState.current = { connectionLoaded, demo, accountLoading };
+  const revalidationTask = useRef<Promise<void> | null>(null);
+  const refreshHistory = history.refresh;
+  const refreshData = useCallback(() => {
+    const state = revalidationState.current;
+    if (
+      !state.connectionLoaded || state.demo ||
+      busyAuth.current || busyBuying.current
+    ) return Promise.resolve();
+    // Focus and visibility events often arrive together. Share one refresh.
+    if (revalidationTask.current) return revalidationTask.current;
+    const scope = scopeRef.current;
+    const task = (async () => {
+      // Cookies may have changed in another browser tab since this tab loaded.
+      const next = await refreshConnection();
+      if (
+        !next || liveKey(next) !== scope || scope !== scopeRef.current ||
+        revalidationState.current.accountLoading ||
+        busyAuth.current || busyBuying.current
+      ) return;
+      const latest = await refreshAccount();
+      if (latest && scope === scopeRef.current)
+        await refreshHistory(true, latest);
+    })().finally(() => {
+      revalidationTask.current = null;
+    });
+    revalidationTask.current = task;
+    return task;
+  }, [refreshConnection, refreshAccount, refreshHistory]);
+
   useEffect(() => {
-    if (!account || demo) return;
-    const timer = setInterval(() => {
-      if (document.visibilityState === "visible") void refreshAccount();
-    }, 60_000);
-    return () => clearInterval(timer);
-  }, [Boolean(account), demo, refreshAccount]);
+    const resume = () => {
+      if (document.visibilityState === "visible") void refreshData();
+    };
+    const restore = (event: PageTransitionEvent) => {
+      if (event.persisted) resume();
+    };
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("focus", resume);
+    window.addEventListener("online", resume);
+    window.addEventListener("pageshow", restore);
+    const timer = setInterval(resume, 60_000);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("focus", resume);
+      window.removeEventListener("online", resume);
+      window.removeEventListener("pageshow", restore);
+    };
+  }, [refreshData]);
 
   async function login(email: string, password: string) {
     if (busyBuying.current || busyAuth.current || accountBusy) return;
     busyAuth.current = true;
+    connectionRequest.current++;
     setAccountBusy(true);
     accountController.current?.abort();
     accountRequest.current++;
@@ -307,6 +357,7 @@ export function useWorkspace() {
     if (!parsed.data)
       throw new ClientError(parsed.error, "REGISTRATION_INVALID_INPUT");
     busyAuth.current = true;
+    connectionRequest.current++;
     setAccountBusy(true);
     accountController.current?.abort();
     accountRequest.current++;
@@ -348,6 +399,7 @@ export function useWorkspace() {
   async function logout() {
     const response = await fetch("/api/account", { method: "DELETE" });
     if (!response.ok) throw new Error("Chưa đăng xuất được. Vui lòng thử lại.");
+    connectionRequest.current++;
     accountRequest.current++;
     accountController.current?.abort();
     setAccountData(null);
@@ -630,6 +682,7 @@ export function useWorkspace() {
 
   async function saveToken(apiKey: string) {
     await postApi("/api/connection", { apiKey });
+    connectionRequest.current++;
     accountRequest.current++;
     accountController.current?.abort();
     setAccountData(null);
@@ -648,6 +701,7 @@ export function useWorkspace() {
     const response = await fetch("/api/connection", { method: "DELETE" });
     if (!response.ok)
       throw new Error("Không thể xóa cấu hình. Vui lòng thử lại.");
+    connectionRequest.current++;
     accountRequest.current++;
     accountController.current?.abort();
     setAccountData(null);
@@ -709,6 +763,7 @@ export function useWorkspace() {
     accountRestoring,
     accountBusy,
     refreshAccount,
+    refreshData,
     expireAccount,
     login,
     register,

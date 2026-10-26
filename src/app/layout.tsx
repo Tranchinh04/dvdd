@@ -11,9 +11,10 @@ import "@/styles/responsive.css";
 import "@/styles/auth.css";
 
 export const metadata: Metadata = {
-  title: "DVDD Workspace — Mua số & nhận OTP",
+  title: "OtpFlash — Mua số & nhận OTP",
+  applicationName: "OtpFlash",
   description:
-    "Không gian làm việc gọn gàng để thuê số điện thoại, quản lý đơn hàng và nhận mã OTP từ DVDD.",
+    "OtpFlash giúp thuê số điện thoại, nhận mã OTP và quản lý tài khoản DVDD trong một giao diện gọn gàng.",
   robots: { index: false, follow: false },
 };
 

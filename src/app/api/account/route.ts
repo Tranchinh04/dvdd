@@ -21,6 +21,7 @@ import {
 } from "@/lib/server/http";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function clearAccountCookie(response: NextResponse, request: NextRequest) {
   response.cookies.set(ACCOUNT_COOKIE, "", accountCookieOptions(request, 0));

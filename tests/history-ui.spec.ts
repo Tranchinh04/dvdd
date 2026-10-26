@@ -141,7 +141,9 @@ test("history and analytics restore all advertised provider pages without local 
     page.locator(".stat-card").first().locator("strong").first(),
   ).toHaveText("04");
   await expect(page.locator(".stat-card").last()).toContainText("10.000đ");
-  expect(requested).toEqual(["transactions:2"]);
+  // Navigation now revalidates the seed pages as well as older history.
+  expect(requested).toContain("transactions:2");
+  expect(requested.every(path => ["phones:1", "transactions:1", "transactions:2"].includes(path))).toBe(true);
 
   await page.getByRole("button", { name: "Hết hạn", exact: true }).click();
   await expect(page.locator("tbody tr")).toHaveCount(1);

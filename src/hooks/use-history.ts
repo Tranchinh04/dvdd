@@ -81,9 +81,10 @@ export function useHistory(
     [],
   );
 
-  const sync = useCallback(async (force = true) => {
-    const { account, scope } = current.current;
-    if (!account) return;
+  const sync = useCallback(async (force = true, latest?: DvddAccount) => {
+    const { account: connectedAccount, scope } = current.current;
+    const account = latest || connectedAccount;
+    if (!account || !connectedAccount) return;
     controller.current?.abort();
     const abort = new AbortController();
     controller.current = abort;
