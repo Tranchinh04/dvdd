@@ -138,6 +138,12 @@ npm run build
 npm start
 ```
 
+## Deploy lên Render Free
+
+Dự án có [`render.yaml`](render.yaml) để chạy Next.js dưới dạng **Web Service, plan Free**, sinh `SESSION_SECRET` riêng và kiểm tra kết nối DVDD khi khởi động. Xem [hướng dẫn Render](docs/render-deployment.md) để tạo Blueprint và xác minh đăng nhập từ môi trường Render. Chưa chuyển API của Vercel sang Render; phải kiểm tra đăng nhập thật trước khi nối hai môi trường.
+
+Render Free ngủ khi không có truy cập và có giới hạn tài nguyên. Đổi nền tảng chưa bảo đảm DVDD chấp nhận kết nối; bước kiểm tra form/API không thay thế kiểm tra đăng nhập thật.
+
 ## Deploy lên Vercel cho nhiều người dùng
 
 Vercel chạy trực tiếp Next.js và các Route Handler trong dự án. Tên ứng dụng là **OtpFlash**, tên project dùng `otpflash` nếu khả dụng trong tài khoản. Không xuất HTML tĩnh vì đăng nhập, số dư, nạp tiền và OTP cần máy chủ.

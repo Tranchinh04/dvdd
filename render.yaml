@@ -1,0 +1,21 @@
+# Deploy as a Web Service: the app needs Node.js for accounts and OTP.
+# No database, disk or paid compute is provisioned by this Blueprint.
+services:
+  - type: web
+    name: otpflash
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:render
+    healthCheckPath: /api/connection
+    autoDeployTrigger: "off"
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: SESSION_SECRET
+        generateValue: true
