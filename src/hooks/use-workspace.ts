@@ -635,6 +635,7 @@ export function useWorkspace() {
     accountLoading,
     accountBusy,
     refreshAccount,
+    expireAccount,
     login,
     logout,
     demo,

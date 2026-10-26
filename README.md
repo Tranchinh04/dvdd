@@ -25,7 +25,7 @@ Token được lấy trong mini app của [@dvddBot trên Telegram](https://t.me
 2. Chọn **Đăng nhập** bằng tài khoản DVDD. Nếu chưa có tài khoản, chọn **Đăng ký** và điền họ tên, email, số điện thoại, mật khẩu, nhập lại mật khẩu; hoàn tất các bước theo hướng dẫn của DVDD.
 3. Trong menu của mini app, chọn **API**. Ở khối **Thông tin kết nối API**, tìm ô **Api token** và bấm **Sao chép**. Nếu ô chưa có mã, dùng nút **Tạo mới** trước. Khi đã có token đang sử dụng, sao chép mã hiện tại.
 4. Quay lại ứng dụng này → **Tài khoản DVDD → Đăng nhập & kết nối** để tự đọc token và đồng bộ tài khoản. Bạn cũng có thể dán token tại **Cấu hình API** nếu chỉ cần mua số/lấy OTP.
-5. Trước khi mua số, nạp số dư tại mini app DVDD: **Tài chính → Nạp tiền**. Ứng dụng này dùng số dư của tài khoản DVDD ứng với token đã nhập.
+5. Sau khi đăng nhập tại **Tài khoản DVDD**, vào **Nạp tiền** ngay trong ứng dụng để lấy QR và nội dung chuyển khoản riêng. Ứng dụng này dùng số dư của tài khoản DVDD ứng với token đã nhập.
 
 Email/mật khẩu dùng trong phần **Tài khoản DVDD** chính là tài khoản đăng nhập mini app, không phải tài khoản Telegram. Mật khẩu chỉ được chuyển đến `https://dvdd.casa/login.php` trong lần đăng nhập và không được lưu vào cookie, localStorage hay file. Sau đó ứng dụng giữ phiên DVDD đã mã hóa, tối đa 24 giờ; nếu DVDD hết phiên sớm hơn thì cần đăng nhập lại. `SESSION_SECRET` chỉ cấu hình bởi người vận hành máy chủ.
 
@@ -58,6 +58,9 @@ DVDD_API_KEY=
 
 - Giao diện sáng, tiếng Việt, thích ứng với máy tính và điện thoại; menu hỗ trợ bàn phím.
 - Đăng nhập DVDD một lần để tự lấy token hiện có, đọc họ tên/email/điện thoại và số dư thật. Số dư thiếu dữ liệu được hiển thị là chưa xác định, không thay bằng 0.
+- Màn hình **Nạp tiền** lấy thông tin ngân hàng, chủ tài khoản, nội dung chuyển khoản, mức nạp tối thiểu và hướng dẫn thời gian xử lý từ trang nạp DVDD của phiên đang đăng nhập. Sao chép số tài khoản/nội dung, tải QR PNG và xem giao dịch ngay trong web. Chỉ có API token thì cần đăng nhập đầy đủ trước; demo không hiển thị QR thật.
+- QR được dựng tại máy chủ từ đúng nội dung QR DVDD trả về, không gửi thông tin sang dịch vụ tạo ảnh QR. Kiểm tra CRC, ngân hàng MB/BIN 970422, người nhận, số tài khoản, nội dung, tiền tệ VND và QR không có số tiền cố định. Nếu nguồn đổi cấu trúc, ngân hàng hoặc các trường không khớp thì dừng hiển thị thông tin nạp. Không tự sửa hay đoán thông tin nhận tiền.
+- Màn nạp tự làm mới số dư/giao dịch mỗi 30 giây khi tab hiển thị, xác minh lại QR sau 5 phút và xóa QR khi không tải lại được hoặc phiên hết hạn. Nút **Tôi đã chuyển · Kiểm tra số dư** chỉ đọc dữ liệu DVDD; không tự xác nhận nạp thành công chỉ vì bấm nút hoặc số dư tăng. Dữ liệu nạp không được lưu vào localStorage.
 - Đọc lịch sử thuê số từ tài khoản DVDD, gồm đơn mua ngoài ứng dụng này; xem mã đơn, số điện thoại, OTP, trạng thái, phí và thời gian nhà cung cấp trả về.
 - Xem lịch sử giao dịch DVDD có phân trang. Số tiền/mô tả được giữ theo dữ liệu nhà cung cấp, không suy diễn tiền nạp hoặc tiền trừ từ một số tiền không có dấu.
 - Làm mới tài khoản thủ công, sau khi mua thành công, và mỗi 60 giây khi tab hiển thị. Lỗi tạm thời giữ dữ liệu lần cập nhật trước kèm thông báo; phiên hết hạn yêu cầu đăng nhập lại.
@@ -86,6 +89,7 @@ Trình duyệt chỉ gọi các Route Handler cùng nguồn. Máy chủ gọi en
 | `POST /api/account`     | Đăng nhập web DVDD   | `{ "email": "...", "password": "..." }`; không trả token/mật khẩu |
 | `GET /api/account?page=1` | Đọc tài khoản web DVDD | Số dư, hồ sơ, lịch sử thuê số và trang giao dịch |
 | `GET /api/history?kind=transactions&page=1` | Đọc lịch sử web DVDD | Một trang giao dịch; `kind=phones` đọc bảng thuê số. Cần phiên đăng nhập cùng API token |
+| `GET /api/topup` | Đọc trang nạp web DVDD | QR PNG và thông tin chuyển khoản đã đối chiếu, ràng buộc với tài khoản đang đăng nhập; không chuyển tiền |
 | `DELETE /api/account`   | Không gọi DVDD       | Đăng xuất phiên trong ứng dụng này, xóa cookie token |
 | `POST /api/phone`        | `getPhoneNumber`     | `{ "service": "standard" }`              |
 | `POST /api/phone`        | `getPhoneNumberVNMB` | `{ "service": "vnmb" }`                  |
@@ -111,6 +115,8 @@ npm test
 ```
 
 Kiểm thử bao gồm luồng mua demo, lưu token được mã hóa, chống bấm mua lặp, kiểm tra phí trả về, OTP tự động, đơn hết hạn, lỗi số dư, kiểm tra nguồn yêu cầu, lưu lịch sử, CSV và giao diện điện thoại. Phần tài khoản kiểm tra đăng nhập, phiên hết hạn, đổi tài khoản, phân tích số dư/lịch sử, phân trang, lỗi đồng bộ, đăng xuất và tách demo. Toàn bộ đăng nhập nhà cung cấp, mua số/OTP trong bộ kiểm thử tự động đều được giả lập; không trừ tiền tài khoản DVDD. Kiểm tra thiếu token dừng trước khi gọi mua số nếu máy chủ đang chạy có cấu hình token thật.
+
+Kiểm tra responsive bao phủ các màn mua số, lịch sử, thống kê, tài khoản, giao dịch, nạp tiền và cài đặt ở 320–1920 px, gồm điện thoại nằm ngang và hai phía breakpoint menu 900 px. Kiểm tra cả nội dung dài, số dư lớn, nhãn nút bị cắt, phần tử tràn khỏi panel, thao tác cảm ứng, menu/khôi phục focus và các hộp thoại trên màn hình thấp. Đơn hàng và giao dịch ở màn nhỏ dùng dạng thẻ, giữ đủ OTP/phí/thời gian/mã đơn để không phụ thuộc cuộn ngang.
 
 Nếu đã có Chromium, có thể đặt `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` tới file thực thi thay cho bước cài trình duyệt.
 

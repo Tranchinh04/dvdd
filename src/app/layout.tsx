@@ -6,6 +6,8 @@ import "@fontsource/be-vietnam-pro/700.css";
 import "./globals.css";
 import "@/styles/dashboard.css";
 import "@/styles/account.css";
+import "@/styles/topup.css";
+import "@/styles/responsive.css";
 
 export const metadata: Metadata = {
   title: "DVDD Workspace — Mua số & nhận OTP",

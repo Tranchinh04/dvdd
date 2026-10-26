@@ -1,0 +1,617 @@
+/* Content must shrink and wrap inside panels instead of being clipped. */
+.panel,
+.panel-heading > div,
+.settings-title > div,
+.settings-sections,
+.account-sections,
+.phone-cell,
+.phone-cell > div,
+.topup-bank-column {
+  min-width: 0;
+}
+.button,
+.text-button {
+  max-width: 100%;
+}
+.button-group {
+  flex-wrap: wrap;
+}
+.phone-number {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+.order-code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.status-badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.panel-heading h2,
+.settings-title h2,
+.toast > span {
+  overflow-wrap: anywhere;
+}
+.sidebar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.sidebar-close {
+  display: none;
+}
+.sidebar > nav,
+.sidebar > .nav-label {
+  flex-shrink: 0;
+}
+.sidebar {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  overscroll-behavior: contain;
+}
+.modal {
+  overscroll-behavior: contain;
+  max-width: calc(100% - 24px);
+}
+.modal-heading > div,
+.modal-actions > .button,
+.detail-info dd {
+  min-width: 0;
+}
+.detail-info dd {
+  overflow-wrap: anywhere;
+}
+.detail-info dt {
+  flex-shrink: 0;
+}
+.modal-actions {
+  flex-wrap: wrap;
+}
+.modal-heading {
+  position: sticky;
+  top: -1px;
+  z-index: 2;
+  background: white;
+  padding-bottom: 12px;
+}
+.detail-top {
+  flex-wrap: wrap;
+}
+.otp-boxes {
+  gap: clamp(4px, 1.5vw, 8px);
+}
+.otp-boxes span {
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* Tablet content is narrower when the desktop sidebar is present. Cards keep
+   OTP, fee, timestamps and actions together without a hidden table column. */
+@media (max-width: 1100px) {
+  .purchase-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .checkout-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .checkout-total {
+    border-top: 0;
+    margin-top: 0;
+    padding-top: 0;
+  }
+  .buy-button,
+  .checkout-note {
+    margin-top: 0;
+  }
+  .checkout-tip {
+    border: 0;
+    margin-top: 0;
+    padding-top: 0;
+  }
+  .orders-panel .table-scroll {
+    display: none;
+  }
+  .mobile-order-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-top: 1px solid var(--border);
+  }
+  .mobile-order-card {
+    min-width: 0;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mobile-order-card:nth-child(odd) {
+    border-right: 1px solid var(--border);
+  }
+  .mobile-order-heading,
+  .mobile-order-meta,
+  .mobile-order-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .mobile-order-heading .phone-cell {
+    flex: 1;
+  }
+  .mobile-order-meta,
+  .mobile-order-result {
+    flex-wrap: wrap;
+  }
+  .mobile-order-meta {
+    margin: 14px 0 10px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .mobile-order-meta > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .mobile-order-meta > span:last-child {
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+  .mobile-order-time,
+  .mobile-order-error {
+    overflow-wrap: anywhere;
+  }
+  .mobile-order-error {
+    color: #9b7138;
+    margin-top: 10px;
+    font-size: 12px;
+  }
+  .mobile-order-result .text-button {
+    min-height: 36px;
+  }
+  .orders-panel > .panel-heading,
+  .breakdown-panel > .panel-heading {
+    flex-wrap: wrap;
+  }
+  .filter-tabs {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .filter-tabs > button {
+    white-space: normal;
+    max-width: 100%;
+  }
+  .search-input {
+    min-width: 0;
+  }
+  .extended-filters {
+    flex-wrap: wrap;
+  }
+  .extended-filters select {
+    max-width: 100%;
+  }
+  .topup-ledger-scroll,
+  .remote-table-wrap {
+    overflow: visible;
+  }
+  .topup-ledger table,
+  .remote-table {
+    display: block;
+    min-width: 0;
+  }
+  .topup-ledger thead,
+  .remote-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .topup-ledger tbody,
+  .remote-table tbody {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 18px;
+  }
+  .topup-ledger tr,
+  .remote-table tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 16px 12px;
+    padding: 17px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    min-width: 0;
+  }
+  .topup-ledger td,
+  .remote-table td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+  }
+  .topup-ledger td:not(:first-child) {
+    white-space: normal;
+  }
+  .topup-ledger td:first-child,
+  .topup-ledger td:last-child,
+  .remote-table td:first-child,
+  .remote-table td:last-child {
+    grid-column: 1 / -1;
+    padding: 0;
+    min-width: 0;
+  }
+  .topup-ledger td::before,
+  .remote-table td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+  .remote-table td strong {
+    overflow-wrap: anywhere;
+  }
+  .remote-order-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    border-top: 1px solid var(--border);
+  }
+  .remote-order-list-head {
+    display: none;
+  }
+  .remote-order {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    padding: 20px;
+    align-items: start;
+  }
+  .remote-order:nth-child(even) {
+    border-right: 1px solid var(--border);
+  }
+  .remote-phone {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .remote-phone strong {
+    white-space: normal;
+  }
+  .remote-fee {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .remote-otp {
+    grid-column: 1;
+    grid-row: 2;
+    flex-wrap: wrap;
+  }
+  .mobile-otp-label {
+    display: inline;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .dvdd-status {
+    grid-column: 2;
+    grid-row: 2;
+    max-width: 145px;
+    overflow-wrap: anywhere;
+  }
+  .remote-order-code {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .remote-time {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: min(300px, calc(100vw - 40px));
+    max-height: 100dvh;
+    padding-top: max(18px, env(safe-area-inset-top, 0px));
+  }
+  .sidebar-heading {
+    padding: 0 2px;
+  }
+  .sidebar-heading .brand {
+    padding-inline: 0;
+  }
+  .sidebar-close {
+    display: inline-flex;
+    width: 40px;
+    height: 40px;
+  }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    height: auto;
+    min-height: 65px;
+    padding-top: max(10px, env(safe-area-inset-top, 0px));
+    padding-bottom: 10px;
+  }
+  .breadcrumbs {
+    flex: 1;
+  }
+  .breadcrumbs > span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .mobile-menu {
+    width: 40px;
+    height: 40px;
+  }
+  .content {
+    scroll-margin-top: 80px;
+  }
+  .copy-button {
+    width: 34px;
+    height: 34px;
+  }
+  .sidebar-bottom {
+    padding-top: 22px;
+  }
+  input,
+  select {
+    scroll-margin-block: 90px 24px;
+  }
+}
+
+@media (max-width: 740px) {
+  .content {
+    padding-inline: clamp(12px, 4vw, 20px);
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  }
+  .topbar {
+    padding-inline: 12px;
+    gap: 8px;
+  }
+  .topbar-actions {
+    gap: 8px;
+  }
+  .breadcrumbs {
+    gap: 6px;
+  }
+  .breadcrumbs > span:last-child {
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  .account-strip {
+    align-items: flex-start;
+  }
+  .account-strip-main {
+    flex-basis: 100%;
+  }
+  .account-strip .dvdd-balance {
+    flex-basis: 100%;
+  }
+  .account-strip .dvdd-balance strong {
+    font-size: clamp(23px, 6vw, 28px);
+    overflow-wrap: anywhere;
+  }
+  .account-strip-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    flex: 1 1 100%;
+    width: 100%;
+    gap: 6px;
+  }
+  .account-strip-actions > .button {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 5px;
+    gap: 5px;
+    font-size: 11px;
+    white-space: normal;
+  }
+  .account-profile-body > .dvdd-balance {
+    min-width: 0;
+    max-width: 100%;
+    padding: 20px;
+  }
+  .account-profile-body > .dvdd-balance strong {
+    font-size: clamp(24px, 7vw, 32px);
+    overflow-wrap: anywhere;
+  }
+  .account-profile-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .account-profile-fields > div {
+    grid-column: 1 / -1;
+  }
+  .account-profile-actions .button {
+    min-height: 40px;
+    flex: 1 1 auto;
+    white-space: normal;
+  }
+  .mobile-order-list,
+  .remote-order-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mobile-order-card,
+  .remote-order {
+    padding: 18px;
+  }
+  .mobile-order-card:nth-child(odd),
+  .remote-order:nth-child(even) {
+    border-right: 0;
+  }
+  .filter-tabs {
+    gap: 5px;
+  }
+  .filter-tabs > button {
+    flex: 0 1 auto;
+    padding: 8px 9px;
+    min-height: 36px;
+  }
+  .orders-panel .button-group {
+    width: 100%;
+  }
+  .orders-panel .button-group .button {
+    flex: 1;
+    min-width: 0;
+    white-space: normal;
+    min-height: 40px;
+  }
+  .table-toolbar {
+    gap: 12px;
+  }
+  .table-footer {
+    align-items: center;
+  }
+  .table-footer > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .table-footer .local-data-note {
+    display: inline-flex;
+  }
+  .stat-card > strong {
+    overflow-wrap: anywhere;
+  }
+  .stat-card:last-child > strong {
+    font-size: clamp(18px, 5vw, 24px);
+  }
+  .topup-ledger tbody,
+  .remote-table tbody {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 15px;
+  }
+  .remote-pagination {
+    flex-wrap: wrap;
+    padding: 16px 18px;
+  }
+  .remote-pagination > div {
+    margin-left: auto;
+  }
+  .topup-wallet-info > strong {
+    overflow-wrap: anywhere;
+    font-size: clamp(23px, 6vw, 30px);
+  }
+  .breakdown-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .breakdown-row > strong:last-child {
+    grid-column: 2;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+  .breakdown-row > div {
+    min-width: 0;
+  }
+  .service-price {
+    font-size: clamp(23px, 6vw, 28px);
+  }
+  .checkout-panel {
+    display: block;
+  }
+  .checkout-total {
+    margin-top: 19px;
+    padding-top: 20px;
+    border-top: 1px dashed #dce6dc;
+  }
+  .buy-button {
+    margin-top: 21px;
+  }
+  .checkout-note {
+    margin-top: 11px;
+  }
+  .checkout-tip {
+    margin-top: 20px;
+    padding-top: 19px;
+    border-top: 1px solid var(--border);
+  }
+  .modal-inner {
+    padding: 20px;
+  }
+  .modal-heading {
+    gap: 10px;
+  }
+  .modal-heading h2 {
+    font-size: 18px;
+    overflow-wrap: anywhere;
+  }
+  .detail-phone > strong {
+    font-size: clamp(22px, 6vw, 28px);
+    flex-wrap: wrap;
+  }
+  .detail-otp {
+    padding: 20px 12px;
+  }
+  .detail-otp > strong {
+    font-size: clamp(23px, 7vw, 32px);
+    letter-spacing: 2px;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .detail-info > div {
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .detail-info dd {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 67%;
+  }
+  .toast {
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    max-height: min(40dvh, 220px);
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+  }
+  .demo-banner {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .modal-actions .button {
+    width: 100%;
+    min-height: 44px;
+    white-space: normal;
+  }
+  .help-modal-art {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+  }
+  .help-modal-art .phone-artwork {
+    align-self: center;
+  }
+  .help-modal-art h3 {
+    margin-top: 8px;
+  }
+  .remote-tabs button {
+    min-width: 0;
+    white-space: normal;
+    min-height: 44px;
+  }
+}
+
+@media (max-height: 700px) {
+  .sidebar-bottom {
+    padding-top: 16px;
+  }
+  .modal {
+    max-height: calc(100dvh - 16px);
+  }
+}

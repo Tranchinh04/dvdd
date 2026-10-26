@@ -51,6 +51,17 @@ export type DvddTransaction = {
   time: string;
 };
 
+export type DvddTopup = {
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  reference: string;
+  minimumAmount: number;
+  processingNotice: string;
+  qrDataUrl: string;
+  updatedAt: string;
+};
+
 export type DvddAccount = {
   profile: DvddProfile;
   orders: DvddPhoneOrder[] | null;

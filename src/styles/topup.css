@@ -1,0 +1,434 @@
+.topup-page {
+  display: grid;
+  gap: 24px;
+}
+.topup-summary {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 24px 28px;
+}
+.topup-wallet-icon,
+.topup-symbol {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  color: var(--primary);
+  background: #edf5f0;
+}
+.topup-wallet-info {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.topup-wallet-info > span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.topup-wallet-info > strong {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.7px;
+  font-variant-numeric: tabular-nums;
+}
+.topup-wallet-info > small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.topup-sync {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--primary);
+  line-height: 1.8;
+}
+.topup-sync .status-dot {
+  display: inline-block;
+  margin-right: 7px;
+  background: currentColor;
+}
+.topup-sync small {
+  display: block;
+  color: var(--muted);
+  text-align: right;
+}
+.topup-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  align-items: start;
+  gap: 24px;
+}
+.topup-transfer {
+  overflow: hidden;
+  min-width: 0;
+}
+.topup-transfer > .panel-heading,
+.topup-ledger > .panel-heading {
+  border-bottom: 1px solid var(--border);
+}
+.topup-payment-body {
+  padding: 28px;
+  display: grid;
+  grid-template-columns: minmax(200px, 0.95fr) minmax(210px, 1fr);
+  align-items: center;
+  gap: 28px;
+}
+.topup-qr-column {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.topup-qr-caption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.topup-qr-frame {
+  background: white;
+  width: 100%;
+  max-width: 276px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 8px;
+}
+.topup-qr-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.topup-qr-column > small {
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+}
+.topup-bank-brand {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.topup-bank-brand > span {
+  color: #2757a0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  background: #f0f4fb;
+  flex-shrink: 0;
+}
+.topup-bank-brand strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+}
+.topup-bank-brand small {
+  color: var(--muted);
+  font-size: 10px;
+  display: block;
+  margin-top: 4px;
+  line-height: 1.8;
+}
+.topup-bank-fields {
+  display: grid;
+  gap: 20px;
+}
+.topup-bank-fields dt {
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+.topup-bank-fields dd {
+  margin: 0;
+  font-weight: 500;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.topup-copy-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.topup-copy-value strong {
+  min-width: 0;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  overflow-wrap: anywhere;
+}
+.topup-copy-value .copy-button {
+  flex-shrink: 0;
+}
+.topup-bank-fields .topup-reference {
+  padding: 14px;
+  background: #f1f7f3;
+  border: 1px solid #dcebe1;
+  border-radius: 10px;
+  margin: 0 -14px;
+  color: var(--primary);
+}
+.topup-reference small {
+  display: block;
+  font-size: 10px;
+  margin-top: 8px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.topup-provider-note {
+  padding: 16px 24px;
+  background: #fafcf9;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.9;
+}
+.topup-provider-note > svg {
+  color: var(--primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.topup-provider-note > span {
+  flex: 1;
+}
+.topup-provider-note small {
+  display: block;
+  font-size: 10px;
+}
+.topup-provider-note > button {
+  flex-shrink: 0;
+  font-size: 11px;
+}
+.topup-guide {
+  padding: 25px 23px;
+}
+.topup-guide h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.topup-guide ol {
+  list-style: none;
+  display: grid;
+  gap: 24px;
+  padding: 0;
+  margin: 28px 0;
+}
+.topup-guide li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.topup-guide li > span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #edf5f0;
+  color: var(--primary);
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+.topup-guide li strong {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.8;
+}
+.topup-guide li p {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.9;
+  margin-top: 4px;
+}
+.topup-guide > .button {
+  width: 100%;
+  font-size: 11px;
+  padding: 12px 10px;
+}
+.topup-check-note {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.9;
+  text-align: center;
+  margin-top: 13px;
+}
+.topup-gate {
+  padding: 48px 24px;
+  text-align: center;
+  max-width: 620px;
+  margin: 30px auto;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 18px;
+}
+.topup-gate h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+.topup-gate p {
+  color: var(--muted);
+  line-height: 1.9;
+  max-width: 450px;
+  font-size: 12px;
+}
+.topup-loading {
+  min-height: 380px;
+  padding: 40px 28px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+  gap: 16px;
+  color: var(--muted);
+}
+.topup-loading > svg {
+  color: var(--primary);
+}
+.topup-loading strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+}
+.topup-loading p {
+  max-width: 430px;
+  font-size: 12px;
+  line-height: 1.9;
+}
+.topup-ledger {
+  min-width: 0;
+  overflow: hidden;
+}
+.topup-ledger-scroll {
+  overflow-x: auto;
+}
+.topup-ledger table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.topup-ledger th {
+  text-align: left;
+  background: #f8faf8;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
+  padding: 14px 24px;
+}
+.topup-ledger td {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  line-height: 1.8;
+}
+.topup-ledger td:first-child {
+  min-width: 210px;
+  overflow-wrap: anywhere;
+}
+.topup-ledger td:not(:first-child) {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.topup-ledger td small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 3px;
+}
+.topup-ledger-empty {
+  padding: 30px 24px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.9;
+}
+@media (max-width: 1250px) {
+  .topup-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .topup-guide ol {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+  }
+  .topup-guide > .button {
+    max-width: 330px;
+    margin: auto;
+  }
+  .topup-check-note {
+    max-width: 450px;
+    margin: 13px auto 0;
+  }
+}
+@media (max-width: 640px) {
+  .topup-page {
+    gap: 18px;
+  }
+  .topup-summary {
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 22px;
+  }
+  .topup-wallet-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .topup-wallet-info {
+    flex: 1;
+  }
+  .topup-wallet-info > strong {
+    font-size: 26px;
+  }
+  .topup-sync {
+    width: 100%;
+    margin: 0;
+    font-size: 11px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .topup-sync small {
+    text-align: left;
+  }
+  .topup-payment-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 30px;
+    padding: 24px;
+  }
+  .topup-transfer > .panel-heading {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .topup-provider-note {
+    padding: 16px;
+    flex-wrap: wrap;
+  }
+  .topup-provider-note > span {
+    min-width: 180px;
+  }
+  .topup-provider-note > button {
+    margin-left: 25px;
+  }
+  .topup-guide ol {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .topup-ledger > .panel-heading {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .topup-ledger th,
+  .topup-ledger td {
+    padding: 13px 17px;
+  }
+}

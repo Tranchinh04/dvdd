@@ -62,8 +62,9 @@ import { CopyButton, LogoMark, Modal, PhoneArtwork, StatusBadge } from "./ui";
 import { OrderTable } from "./order-table";
 import { AccountPanel, AccountStrip } from "./account-panel";
 import { UsageAnalytics } from "./usage-analytics";
+import { TopupPanel } from "./topup-panel";
 
-type View = "buy" | "history" | "analytics" | "settings" | "account";
+type View = "buy" | "history" | "analytics" | "settings" | "account" | "topup";
 type Dialog = "purchase" | "detail" | "help" | "import" | "clear" | null;
 type WorkspaceState = ReturnType<typeof useWorkspace>;
 
@@ -72,6 +73,7 @@ const NAV_ITEMS = [
   { id: "history", label: "Lịch sử đơn hàng", icon: History },
   { id: "analytics", label: "Thống kê sử dụng", icon: BarChart3 },
   { id: "account", label: "Tài khoản DVDD", icon: UserRound },
+  { id: "topup", label: "Nạp tiền", icon: Wallet },
   { id: "settings", label: "Cấu hình API", icon: Settings2 },
 ] as const;
 
@@ -85,6 +87,8 @@ export function Workspace() {
   const [detailId, setDetailId] = useState("");
   const [analyticsPeriod, setAnalyticsPeriod] = useState<HistoryPeriod>("all");
   const mainRef = useRef<HTMLElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const { connection, demo, orders, notify, buying, checking, preferences } =
     workspace;
   const selected = SERVICES[service];
@@ -132,20 +136,51 @@ export function Workspace() {
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 900px)");
-    const update = () => setMobileMode(media.matches);
+    const update = () => {
+      setMobileMode(media.matches);
+      if (!media.matches) setMobileOpen(false);
+    };
     update();
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
 
   useEffect(() => {
-    if (!mobileOpen) return;
+    if (!mobileOpen || !mobileMode) return;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    sidebarRef.current
+      ?.querySelector<HTMLButtonElement>(".sidebar-close")
+      ?.focus();
     const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMobileOpen(false);
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMobileOpen(false);
+      }
+      if (event.key === "Tab") {
+        const controls = Array.from(
+          sidebarRef.current?.querySelectorAll<HTMLElement>(
+            "button:not(:disabled), a[href]",
+          ) || [],
+        ).filter((element) => element.getClientRects().length > 0);
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
     };
     document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
-  }, [mobileOpen]);
+    return () => {
+      document.body.style.overflow = overflow;
+      document.removeEventListener("keydown", close);
+      menuButtonRef.current?.focus({ preventScroll: true });
+    };
+  }, [mobileOpen, mobileMode]);
 
   return (
     <div className="app-shell">
@@ -155,26 +190,39 @@ export function Workspace() {
       {mobileOpen && (
         <button
           className="sidebar-backdrop"
-          aria-label="Đóng menu"
+          aria-label="Đóng menu điều hướng"
           onClick={() => setMobileOpen(false)}
         />
       )}
       <aside
+        ref={sidebarRef}
+        id="workspace-navigation"
         className={`sidebar ${mobileOpen ? "open" : ""}`}
         aria-label="Điều hướng chính"
+        role={mobileMode && mobileOpen ? "dialog" : undefined}
+        aria-modal={mobileMode && mobileOpen ? true : undefined}
         inert={mobileMode && !mobileOpen}
       >
-        <button
-          className="brand"
-          onClick={() => navigate("buy")}
-          aria-label="DVDD — Trang mua số"
-        >
-          <LogoMark />
-          <span>
-            dvdd<span className="brand-dot">.</span>
-            <small>SỐ ĐIỆN THOẠI & OTP</small>
-          </span>
-        </button>
+        <div className="sidebar-heading">
+          <button
+            className="brand"
+            onClick={() => navigate("buy")}
+            aria-label="DVDD — Trang mua số"
+          >
+            <LogoMark />
+            <span>
+              dvdd<span className="brand-dot">.</span>
+              <small>SỐ ĐIỆN THOẠI & OTP</small>
+            </span>
+          </button>
+          <button
+            className="icon-button sidebar-close"
+            aria-label="Đóng menu"
+            onClick={() => setMobileOpen(false)}
+          >
+            <X size={20} />
+          </button>
+        </div>
         <div className="nav-label">DỊCH VỤ</div>
         <nav>
           {NAV_ITEMS.map((item) => (
@@ -199,7 +247,10 @@ export function Workspace() {
         <div className="sidebar-bottom">
           <button
             className="nav-item help-nav"
-            onClick={() => setDialog("help")}
+            onClick={() => {
+              setMobileOpen(false);
+              setDialog("help");
+            }}
           >
             <CircleHelp size={19} strokeWidth={1.7} /> Hướng dẫn sử dụng{" "}
             <ArrowUpRight size={14} />
@@ -230,13 +281,15 @@ export function Workspace() {
         </div>
       </aside>
 
-      <div className="workspace-main">
+      <div className="workspace-main" inert={mobileMode && mobileOpen}>
         <header className="topbar">
           <div className="breadcrumbs">
             <button
+              ref={menuButtonRef}
               className="icon-button mobile-menu"
               aria-label="Mở menu điều hướng"
               aria-expanded={mobileOpen}
+              aria-controls="workspace-navigation"
               onClick={() => setMobileOpen(true)}
             >
               <Menu size={21} />
@@ -305,9 +358,11 @@ export function Workspace() {
                     ? "Lịch sử đơn hàng"
                     : view === "analytics"
                       ? "Thống kê sử dụng"
-                      : view === "account"
-                        ? "Tài khoản DVDD"
-                        : "Cấu hình API"}
+                      : view === "topup"
+                        ? "Nạp tiền"
+                        : view === "account"
+                          ? "Tài khoản DVDD"
+                          : "Cấu hình API"}
               </h1>
               <p>
                 {view === "buy"
@@ -316,9 +371,11 @@ export function Workspace() {
                     ? "Mọi số điện thoại và mã OTP, gọn gàng trong một nơi."
                     : view === "analytics"
                       ? "Nhìn lại hoạt động và chi phí từ lịch sử của bạn."
-                      : view === "account"
-                        ? "Số dư, thông tin cá nhân và lịch sử từ DVDD."
-                        : "Kết nối DVDD và thiết lập cách bạn muốn làm việc."}
+                      : view === "topup"
+                        ? "Quét QR, chuyển khoản và theo dõi số dư ngay tại đây."
+                        : view === "account"
+                          ? "Số dư, thông tin cá nhân và lịch sử từ DVDD."
+                          : "Kết nối DVDD và thiết lập cách bạn muốn làm việc."}
               </p>
             </div>
             {view === "buy" && !demo ? (
@@ -355,6 +412,7 @@ export function Workspace() {
             <AccountStrip
               workspace={workspace}
               onOpen={() => navigate("account")}
+              onTopup={() => navigate("topup")}
             />
           )}
 
@@ -386,7 +444,18 @@ export function Workspace() {
             </>
           )}
 
-          {view === "account" && <AccountPanel workspace={workspace} />}
+          {view === "account" && (
+            <AccountPanel
+              workspace={workspace}
+              onTopup={() => navigate("topup")}
+            />
+          )}
+          {view === "topup" && (
+            <TopupPanel
+              workspace={workspace}
+              onAccount={() => navigate("account")}
+            />
+          )}
 
           {view === "buy" && (
             <>

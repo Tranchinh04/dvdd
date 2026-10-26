@@ -9,6 +9,7 @@ import type {
 } from "../types";
 import { parseFee } from "../types";
 import { ApiError } from "./http";
+import { topupDetails } from "./topup";
 
 // This connector reads the authenticated supplier website. It does not call
 // undocumented worker functions or execute the website's scripts/forms.
@@ -360,6 +361,10 @@ export async function readAccount(
     warnings,
     updatedAt: new Date().toISOString(),
   };
+}
+
+export async function readTopup(jar: SupplierCookies) {
+  return topupDetails(await document("/dashboard?page=transactions-add", jar));
 }
 
 export async function loginAccount(email: string, password: string) {

@@ -75,9 +75,11 @@ function RefreshButton({ workspace }: { workspace: Workspace }) {
 export function AccountStrip({
   workspace,
   onOpen,
+  onTopup,
 }: {
   workspace: Workspace;
   onOpen: () => void;
+  onTopup: () => void;
 }) {
   const { account, accountError, accountLoading } = workspace;
   if (workspace.demo) return null;
@@ -105,6 +107,11 @@ export function AccountStrip({
       </div>
       {account && <Balance workspace={workspace} />}
       <div className="account-strip-actions">
+        {account && (
+          <button className="button primary small" onClick={onTopup}>
+            <Wallet size={14} /> Nạp tiền
+          </button>
+        )}
         {account && <RefreshButton workspace={workspace} />}
         <button
           className={`button small ${account ? "ghost" : "primary"}`}
@@ -132,7 +139,13 @@ export function AccountStrip({
   );
 }
 
-export function AccountPanel({ workspace }: { workspace: Workspace }) {
+export function AccountPanel({
+  workspace,
+  onTopup,
+}: {
+  workspace: Workspace;
+  onTopup: () => void;
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
@@ -342,16 +355,10 @@ export function AccountPanel({ workspace }: { workspace: Workspace }) {
         )}
         <div className="account-profile-actions">
           <RefreshButton workspace={workspace} />
-          <a
-            href={`${DVDD_WEB_URL}/dashboard?page=transactions-add`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="button secondary small"
-          >
+          <button className="button primary small" onClick={onTopup}>
             <Wallet size={14} />
-            Nạp tiền tại DVDD
-            <ExternalLink size={12} />
-          </a>
+            Nạp tiền
+          </button>
           <button
             className="button ghost small"
             disabled={buying || leaving || accountBusy}
@@ -513,13 +520,13 @@ export function AccountPanel({ workspace }: { workspace: Workspace }) {
                   <tbody>
                     {transactions.map((row, index) => (
                       <tr key={`${row.code}-${index}`}>
-                        <td>
+                        <td data-label="Giao dịch / Thời gian">
                           <strong>{row.code}</strong>
                           <small>{row.time}</small>
                         </td>
-                        <td>{row.amount}</td>
-                        <td>{row.balanceAfter}</td>
-                        <td>
+                        <td data-label="Số tiền (đ)">{row.amount}</td>
+                        <td data-label="Số dư cuối (đ)">{row.balanceAfter}</td>
+                        <td data-label="Mô tả / Mã đơn">
                           {row.description}
                           <small>{row.orderCode}</small>
                         </td>

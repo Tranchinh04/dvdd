@@ -603,13 +603,6 @@
     font-size: 12px;
     min-height: 36px;
   }
-  .signed-in .account-strip-actions > .button:first-child {
-    padding: 7px;
-    width: 36px;
-  }
-  .signed-in .account-strip-actions > .button:first-child .mobile-button-label {
-    display: none;
-  }
   .account-strip-icon {
     width: 37px;
     height: 37px;
