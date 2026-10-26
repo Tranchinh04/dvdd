@@ -1,5 +1,7 @@
 # OtpFlash
 
+Bản production: [otpflash.vercel.app](https://otpflash.vercel.app/).
+
 Ứng dụng Next.js bằng tiếng Việt để đăng nhập DVDD, xem số dư và lịch sử tài khoản, mua số điện thoại thường hoặc Vietnamobile và nhận OTP.
 
 Dữ liệu tự đồng bộ khi chuyển màn, quay lại tab trình duyệt, có mạng trở lại và mỗi 60 giây khi tab đang hiển thị. Tài khoản và các trang lịch sử được làm mới cùng nhau; giữ dữ liệu đang hiển thị trong lúc chờ, không cần F5. Các sự kiện quay lại tab liên tiếp dùng chung một lượt đồng bộ; chế độ demo không gọi dữ liệu thật.

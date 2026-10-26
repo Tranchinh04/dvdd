@@ -2,6 +2,18 @@ import { ApiError } from "./http";
 
 const ENDPOINT = "https://api.dvdd-api.workers.dev";
 
+function invalidResponse(status: number, func: string, message: string) {
+  // Never log the URL, key, cookies or upstream body.
+  console.warn("[DVDD API] Invalid upstream response", { func, status });
+  return new ApiError(
+    status === 403
+      ? "DVDD từ chối truy cập API từ máy chủ ứng dụng (HTTP 403). Cần liên hệ DVDD để kiểm tra quyền truy cập máy chủ."
+      : `${message} (HTTP ${status})`,
+    502,
+    status === 403 ? "PROVIDER_ACCESS_DENIED" : "INVALID_RESPONSE",
+  );
+}
+
 export async function callProvider(
   token: string,
   func: string,
@@ -38,13 +50,15 @@ export async function callProvider(
       throw new Error();
     result = payload as Record<string, unknown>;
   } catch {
-    throw new ApiError(
+    throw invalidResponse(
+      response.status,
+      func,
       "DVDD trả về dữ liệu không hợp lệ. Hãy kiểm tra tài khoản DVDD trước khi thử mua lại.",
-      502,
-      "INVALID_RESPONSE",
     );
   }
-  if (result.success === false) {
+  // The documented errors use false; the live worker also returns numeric 0
+  // for invalid credentials. Only the explicit boolean true confirms success.
+  if (result.success === false || result.success === 0) {
     let message =
       typeof result.message === "string"
         ? result.message.slice(0, 500)
@@ -58,10 +72,10 @@ export async function callProvider(
     );
   }
   if (!response.ok || result.success !== true) {
-    throw new ApiError(
+    throw invalidResponse(
+      response.status,
+      func,
       "DVDD chưa xác nhận yêu cầu thành công. Hãy kiểm tra tài khoản trước khi thử lại.",
-      502,
-      "INVALID_RESPONSE",
     );
   }
   return result;

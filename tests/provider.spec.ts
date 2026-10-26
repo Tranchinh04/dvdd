@@ -77,3 +77,26 @@ test("ambiguous purchase failures never retry or disclose the token", async () =
     callProvider("secret-key", "getPhoneNumber"),
   ).rejects.toMatchObject({ status: 502, code: "INVALID_RESPONSE" });
 });
+
+test("non-JSON HTTP 403 reports provider access denial without retrying or leaking the token", async () => {
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return new Response("<html>secret-key private upstream details</html>", { status: 403 });
+  };
+  await expect(callProvider("secret-key", "getOtp", "TEST01")).rejects.toMatchObject({
+    status: 502, code: "PROVIDER_ACCESS_DENIED",
+  });
+  try { await callProvider("secret-key", "getPhoneNumber"); }
+  catch (error) { expect((error as Error).message).not.toMatch(/secret-key|private upstream/); }
+  expect(calls).toBe(2);
+});
+
+test("the worker's numeric zero is an error and numeric one cannot confirm a billable purchase", async () => {
+  globalThis.fetch = async () => Response.json({ success: 0, logout: true, message: "Thông tin tài khoản không đúng secret-key" });
+  await expect(callProvider("secret-key", "getOtp", "TEST01")).rejects.toMatchObject({
+    status: 422, code: "PROVIDER_ERROR", message: "Thông tin tài khoản không đúng [đã ẩn]",
+  });
+  globalThis.fetch = async () => Response.json({ success: 1, data: { phone: "912345678" } });
+  await expect(callProvider("secret-key", "getPhoneNumber")).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+});
